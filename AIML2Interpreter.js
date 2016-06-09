@@ -8,6 +8,7 @@ var lastWildCardValue = '';
 var wildCardArray = [];
 
 var domArray = [];
+var fileArray = [];
 var domIndex = 0;
 
 var isAIMLFileLoadingStarted = false;
@@ -21,7 +22,8 @@ var AIMLInterpreter = function(botAttributesParam){
     var self = this;
     botAttributes = botAttributesParam;
 
-    this.loadAIMLFilesIntoArray = function(fileArray){
+    this.loadAIMLFilesIntoArray = function(inFileArray){
+        fileArray = inFileArray;
         isAIMLFileLoadingStarted = true;
         var fileIndex = 0;
         var readAIMLFile = function(file){
@@ -58,10 +60,13 @@ var AIMLInterpreter = function(botAttributesParam){
     this.findAnswerInLoadedAIMLFiles = function(clientInput, cb){
         //check if all AIML files have been loaded. If not, call this method again after a delay
         if(isAIMLFileLoaded){
+            clientInput = clientInput.toUpperCase();
+
             wildCardArray = [];
             var result = '';
             for(var i = 0; i < domArray.length; i++){
                 cleanDom(domArray[i].children);
+                console.log("Searching ", fileArray[i]);
                 result = findCorrectCategory(clientInput, domArray[i].children);
                 if(result){
                     break;
@@ -86,13 +91,14 @@ var AIMLInterpreter = function(botAttributesParam){
     };
     //restart the DOM in order to load a new AIML File
     this.restartDom = function(){
-        domArray=[];
-        domIndex=0;
-    };
+      domArray=[];
+      domIndex=0;
+      fileArray = [];
+
+      isAIMLFileLoadingStarted = false;
+      isAIMLFileLoaded = false;
+    }
 };
-
-
-
 
 // remove string control characters (like line-breaks '\r\n', leading / trailing spaces etc.)
 var cleanStringFormatCharacters = function(str){
@@ -127,12 +133,16 @@ var findCorrectCategory = function(clientInput, domCategories){
     //indexOfSetTagAmountWithWildCard indicates how many sets with wildcard occur so that those sets store the correct wildcard value
     var indexOfSetTagAmountWithWildCard = 0;
 
-    var  travereseThroughDomToFindMatchingPattern= function(categories){
+    var  travereseThroughDomToFindMatchingPattern= function(categories, depth){
+        if (!depth)
+        {
+          depth = 0;
+        }
         for(var i = 0; i < categories.length; i++){
             if(categories[i].name === 'category'){
                 //traverse through the dom
                 //text gets the value of the current pattern node
-                var text = travereseThroughDomToFindMatchingPattern(categories[i].children);
+                var text = travereseThroughDomToFindMatchingPattern(categories[i].children, depth+1);
                 //check if the input of the user matches the pattern text
                 var matches = checkIfMessageMatchesPattern(clientInput, text);
                 if(matches){
@@ -197,7 +207,6 @@ var findCorrectCategory = function(clientInput, domCategories){
 
         //traverse through template nodes until final text is found
         //return it then to very beginning
-       
         for(var i = 0; i < childNodesOfTemplate.length; i++){
             if(childNodesOfTemplate[i].name === 'template'){
                 //traverse as long through the dom until final text was found
@@ -208,8 +217,10 @@ var findCorrectCategory = function(clientInput, domCategories){
                 return resolveSpecialNodes(childNodesOfTemplate);
             }
             else if(childNodesOfTemplate[i].name === 'random'){
-                //if random node was found, its children are 'li' nodes.
-                return resolveSpecialNodes(childNodesOfTemplate);
+                //if random node was found, it's children are 'li' nodes.
+                //pick one li node by random and continue dom traversion until final text is found
+                var randomNumber = Math.floor(Math.random() * (childNodesOfTemplate[i].children.length));
+                return findFinalTextInTemplateNode([childNodesOfTemplate[i].children[randomNumber]]);
             }
             else if(childNodesOfTemplate[i].name === 'srai'){
                 //take pattern text of srai node to get answer of another category
@@ -217,25 +228,26 @@ var findCorrectCategory = function(clientInput, domCategories){
                 sraiText = sraiText.toUpperCase();
                 var referredPatternText = sraiText;
                 //call findCorrectCategory again to find the category that belongs to the srai node
-                var text = findCorrectCategory(referredPatternText, domCategories);
+                //console.log("SRAI called on ", sraiText);
+                var text;
+                for(var i = 0; i < domArray.length; i++){
+                    cleanDom(domArray[i].children);
+                    console.log("Searching ", fileArray[i]);
+                    text = findCorrectCategory(sraiText, domArray[i].children);
+                    if(text){
+                        break;
+                    }
+                }
                 return text;
             }
             else if(childNodesOfTemplate[i].name === 'li'){
                 return findFinalTextInTemplateNode(childNodesOfTemplate[i].children);
-            }
-            else if(childNodesOfTemplate[i].name === 'br'){
-                //br elements are used for putting '\n' into the text
-                return resolveSpecialNodes(childNodesOfTemplate);
             }
             else if(childNodesOfTemplate[i].name === 'pattern'){
                 //(here it is already checked that this is the right pattern that matches the user input)
                 //make use of the functions of the special nodes - bot, set, get...
                 resolveSpecialNodes(childNodesOfTemplate[i].children);
                 continue;
-            }
-            else if(childNodesOfTemplate[i].name === 'think'){
-                text = resolveSpecialNodes(childNodesOfTemplate);
-                return text;
             }
             else if(childNodesOfTemplate[i].name === 'bot'){
                 text = resolveSpecialNodes(childNodesOfTemplate);
@@ -283,45 +295,20 @@ var findCorrectCategory = function(clientInput, domCategories){
             }
             else if(innerNodes[i].name === 'get'){
                 //replace get tag by belonging variable value
-                var getAux = storedVariableValues[innerNodes[i].attributes.name];
-                if(getAux === undefined){
-                    text = text + '';
-                }else{
-                    text = text + getAux;
-                }
+                text = text + storedVariableValues[innerNodes[i].attributes.name];
             }
             else if(innerNodes[i].name === 'set'){
                 //store value of set tag text into variable (variable name = attribute of set tag)
                 //replace than set tag by the text value
-                var aux='';
-                if(innerNodes[i].children[0].name === 'star'){
-                    aux = resolveSpecialNodes(innerNodes[i].children);
-                    storedVariableValues[innerNodes[i].attributes.name] = aux;
-                    if(!previousThinkTag){
-                        text = text + aux;
-                    }
-                }
-                else if(innerNodes[i].children[0].text === '*'){
+
+                if(innerNodes[i].children[0].text === '*'){
                     //the first set-Tag with wildCard gets the first wildCardValue, the second set-Tag with wildCard gets the second wildCardValue etc.
                     storedVariableValues[innerNodes[i].attributes.name] = wildCardArray[indexOfSetTagAmountWithWildCard];
                     indexOfSetTagAmountWithWildCard++;
                 }else{
                     storedVariableValues[innerNodes[i].attributes.name] = innerNodes[i].children[0].text;
                 }
-
-                //If this set tag is a think tag's child
-                if(previousThinkTag){
-                    previousThinkTag=false;
-                    text= text + '';
-                }else{
-                    text = text + resolveSpecialNodes(innerNodes[i].children);
-                }
-            }
-            else if(innerNodes[i].name === 'br'){
-                text = text + '\n';
-            }
-            else if(innerNodes[i].name === 'think'){
-                previousThinkTag=true;
+//                text = text + innerNodes[i].children[0].text;
                 text = text + resolveSpecialNodes(innerNodes[i].children);
             }
             else if(innerNodes[i].name === 'sr'){
@@ -337,24 +324,19 @@ var findCorrectCategory = function(clientInput, domCategories){
                     }
                 }
             }
-            else if(innerNodes[i].name === 'random'){
-                //Get a random number and find the li tag chosen
-                var randomNumber = Math.floor(Math.random() * (innerNodes[i].children.length));
-                text = text + findFinalTextInTemplateNode([innerNodes[i].children[randomNumber]]);
-            ;
-            }
             else if(innerNodes[i].name === 'star'){
-                text = text + lastWildCardValue;
+              if(innerNodes[i].attributes.index !== undefined){
+                var star_ind = innerNodes[i].attributes.index-1;
+                if (star_ind < wildCardArray.length) {
+                  text = text + wildCardArray[star_ind];
+                } else {
+                  console.log("Asked for non-existant star index "+ star_ind)
+                }
+              }else{
+                text = text + wildCardArray[0];
+              }
             }
-            else if(innerNodes[i].name === 'srai'){
-                //take pattern text of srai node to get answer of another category
-                var sraiText = '' + findFinalTextInTemplateNode(innerNodes[i].children);
-                sraiText = sraiText.toUpperCase();
-                var referredPatternText = sraiText;
-                //call findCorrectCategory again to find the category that belongs to the srai node
-                text = text + findCorrectCategory(referredPatternText, domCategories);
-            }
-            else if(innerNodes[i].name === 'condition') {                
+            else if(innerNodes[i].name === 'condition') {
                 // condition tag specification: list condition tag
                 if(innerNodes[i].attributes.name === undefined){
                     if(innerNodes[i].children === undefined){
@@ -364,15 +346,15 @@ var findCorrectCategory = function(clientInput, domCategories){
                     for(var c in innerNodes[i].children){
                         child = innerNodes[i].children[c];
                         if(child.name === 'li'){
-                            if(child.attributes.value == undefined 
+                            if(child.attributes.value == undefined
                                 || storedVariableValues[child.attributes.name] === child.attributes.value.toUpperCase()){
                                 return findFinalTextInTemplateNode(child.children);
                             }
                         }
                     }
-                } 
+                }
                 // condition tag specification: multi condition tag
-                else if(innerNodes[i].attributes.value !== undefined){         
+                else if(innerNodes[i].attributes.value !== undefined){
                     if (storedVariableValues[innerNodes[i].attributes.name] === innerNodes[i].attributes.value.toUpperCase()) {
                         text = text + resolveSpecialNodes(innerNodes[i].children);
                     }
@@ -383,9 +365,9 @@ var findCorrectCategory = function(clientInput, domCategories){
                     for(var c in innerNodes[i].children){
                         child = innerNodes[i].children[c];
                         if(child.name === 'li'){
-                            if(child.attributes.value === undefined 
+                            if(child.attributes.value === undefined
                                 || storedVariableValues[innerNodes[i].attributes.name] === child.attributes.value.toUpperCase()){
-                                return resolveSpecialNodes(child.children);
+                                return findFinalTextInTemplateNode(child.children);
                             }
                         }
                     }
@@ -393,7 +375,7 @@ var findCorrectCategory = function(clientInput, domCategories){
                     return undefined;
                 }
             }
-            else if(innerNodes[i].name === undefined){
+            else{
                 //normal text (no special tag)
                 text = text + innerNodes[i].text;
             }
@@ -410,60 +392,40 @@ var checkIfMessageMatchesPattern = function(userInput, patternText){
     //convert wildcards in of the pattern node into a regex that matches every char
     var regexPattern = convertWildcardToRegex(patternText);
 
-    //add one with the text in function 'convertWildcardToRegex' here a space is added before and after the user input
-    //to prevent false matching
-    if(userInput.charAt(0) != " "){
-        userInput = " " + userInput;
-    }
-
-    var lastCharacterPosition  = userInput.length - 1;
-    var lastCharacter = userInput.charAt(lastCharacterPosition);
-    if(lastCharacter != " "){
-        userInput = userInput + " ";
-    }
-
     //match userInput with the regex pattern
     //if it matches, matchedString is defined
-    var matchedString = userInput.toUpperCase().match(regexPattern);
+    var matchedString = userInput.match(regexPattern);
 
     if(matchedString){
-        //the matched pattern must be at least as long as the user input or must contain the regex
-        if(matchedString[0].length >= userInput.length || regexPattern.indexOf('[A-Z|0-9|\\s]*[A-Z|0-9|-]*[A-Z|0-9]*[!|.|?|\\s]*') > -1){
-            //if patternText contained a wild card, get the user input that were put into this wild card
-            //use original patternText (* is not replaced by regex!)
-            var information = getWildCardValue(userInput, patternText);
 
-            return true;
-        }
+      // if (!patternText.match(/^[\*_]$/))
+      // {
+        console.log("Matched ", userInput, " on ", patternText, ' -> ', regexPattern);
+      // }
+
+      for (var i = 0; i < matchedString.length - 1; i++) {
+
+        wildCardArray[i] = matchedString[i+1];
+
+      }
+      return true;
     }
     else{
-        return false;
+      return false;
     }
-}
+  }
 
 var convertWildcardToRegex = function(text){
-    var firstCharacter = text.charAt(0);
-    //add a space before and after the pattern text (THIS IS LATER ALSO DONE FOR THE USER INPUT)
-    //prevents false matchings
-    //e.g. (HI as regex also matches HIM or HISTORY, but <space>HI</space> does only match <space>HI</space>)
-    if(firstCharacter != "*"){
-        var text = " " + text;
-    }
-    var lastCharacterPosition = text.length - 1;
-    var lastCharacter = text.charAt(lastCharacterPosition);
 
-    //replace space before wildcard
-    var modifiedText = text.replace(' *', '*');
-    //replace wildcard (*) by regex
-    modifiedText = modifiedText.replace(/\*/g, '[A-Z|0-9|\\s]*[A-Z|0-9|\*|-]*[A-Z|0-9]*[!|.|?|\\s]*');
+  // also, there's all these weird question marks that I don't think are standard syntax?
+  modifiedText = text.replace(/\?/g, '\\?');
 
-    if(lastCharacter != "*"){
-//        text = text + " ";
-        //pattern should also match when user inputs ends with a space, ?, ! or .
-        modifiedText = modifiedText + '[\\s|?|!|.]*';
-    }
+      //replace wildcard (*) by regex
+    modifiedText = modifiedText.replace(/[\*_]/g, '([A-Z0-9]+[A-Z0-9\\-\\s]*[A-Z0-9]*[\\!\\.\\?]?)');
 
-    return modifiedText;
+
+
+    return new RegExp('^' + modifiedText + '$');
 }
 
 var getWildCardValue = function(userInput, patternText){
@@ -475,7 +437,7 @@ var getWildCardValue = function(userInput, patternText){
     if(replaceArray.length > 1){
         //replace the string of the userInput which is fixed by the pattern
         for(var i = 0; i < replaceArray.length; i++){
-            wildCardInput = wildCardInput.replace(new RegExp(replaceArray[i], 'i'), '|');
+            wildCardInput = wildCardInput.replace(replaceArray[i], '|');
         }
         //split the wildCardInput string by | to differentiate multiple * inputs
         //e.g. userInput = WHAT IS THE RELATION BETWEEN TIM AND STRUPPI?
@@ -528,4 +490,3 @@ var getWildCardValue = function(userInput, patternText){
 }
 
 module.exports = AIMLInterpreter;
-
