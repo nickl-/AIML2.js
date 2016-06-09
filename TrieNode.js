@@ -65,16 +65,16 @@ TrieNode.prototype.upgrade = function () {
   this.value = undefined;
 }
 
-TrieNode.prototype.addPath = function(path) {
+TrieNode.prototype.addPath = function(path, category) {
   if (!path)
   {
-    this.isLeaf = true;
+    this.category = category;
     this.height = 0;
   }
   else if (this.contains(path.word))
   {
     var next = this.get(path.word);
-    next.addPath(path.next);
+    next.addPath(path.next, category);
     var offset = 1;
     if (path.word == '#' || path.word == '^')
     {
@@ -90,7 +90,7 @@ TrieNode.prototype.addPath = function(path) {
         this.upgrade();
       }
       this.put(path.word, next);
-      next.addPath(path.next);
+      next.addPath(path.next, category);
       var offset = 1;
       if (path.word == '#' || path.word == '^')
       {
@@ -114,5 +114,9 @@ TrieNode.prototype.findNode = function(path) {
   {
     return undefined;
   }
+}
+
+TrieNode.prototype.isLeaf = function () {
+  return this.category != undfined;
 }
 module.exports = TrieNode;

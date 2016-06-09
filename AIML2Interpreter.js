@@ -1,6 +1,12 @@
 DomJS = require("dom-js").DomJS;
 fs = require('fs');
 
+TrieNode = require('./TrieNode');
+Path = require('./Path');
+EventEmitter = require('eventemitter').EventEmitter;
+
+var ee = new EventEmitter();
+
 var storedVariableValues = {};
 var botAttributes = {};
 
@@ -16,6 +22,8 @@ var isAIMLFileLoaded = false;
 
 var previousAnswer = '';
 var previousThinkTag = false;
+
+var root = new TrieNode();
 
 //botAttributes contain things like name, age, master, gender...
 var AIMLInterpreter = function(botAttributesParam){
@@ -50,8 +58,48 @@ var AIMLInterpreter = function(botAttributesParam){
                     else{
                         console.log('AIML file is loaded!');
                         isAIMLFileLoaded = true;
-                    }
-                });
+                        ee.emit('AIML LOADED');
+
+                        // Iterate over the dom and add all the categories to the root TrieNode
+                        for(var i = 0; i < domArray.length; i++){
+                          var nodes = domArray[i].children;
+                          for (var j = 0; j < nodes.length; j++)
+                          {
+                            var n = nodes[j];
+                            if (n.name == 'category')
+                            {
+                              console.log("Found category node");
+                              var that = '*', topic='*', pattern = '';
+                              // iterate through child nodes to find THAT and TOPIC
+                              for (var k = 0; k < n.children.length; k++)
+                              {
+                                if (n.children[k].name == 'that')
+                                {
+                                  that = n.children[k].text;
+                                }
+                                else if (n.children[k].name == 'topic')
+                                {
+                                  topic = n.children[k].text;
+                                }
+                                else if (n.children[k].name == 'pattern')
+                                {
+                                  pattern = n.children[k].children[0].text;
+                                }
+                              }
+                              if (pattern)
+                              {
+                                console.log("Adding ", pattern, " to root node.");
+                                root.addPath(Path.sentenceToPath(pattern + ' <THAT> ' + that + ' <TOPIC> ' + topic), n);
+                              }
+                              else
+                              {
+                                console.log("Error. Category has no pattern child.");
+                              }
+                            }
+                          }
+                        }
+                      }
+                    });
             });
         }
         readAIMLFile(fileArray[fileIndex]);
@@ -61,6 +109,14 @@ var AIMLInterpreter = function(botAttributesParam){
         //check if all AIML files have been loaded. If not, call this method again after a delay
         if(isAIMLFileLoaded){
             clientInput = clientInput.toUpperCase();
+
+            var trieResult = root.findNode(Path.sentenceToPath(clientInput + ' <THAT> * <TOPIC> *')).category;
+            console.log('Searching from root node');
+            console.log(trieResult);
+            for (var i = 0; i < trieResult.children.length; i++)
+            {
+              console.log("     ", trieResult.children[i]);
+            }
 
             wildCardArray = [];
             var result = '';
@@ -74,6 +130,7 @@ var AIMLInterpreter = function(botAttributesParam){
             }
 
             if(result){
+                console.log("Found result ", result);
                 result = cleanStringFormatCharacters(result);
                 previousAnswer = result;
             }
@@ -97,6 +154,7 @@ var AIMLInterpreter = function(botAttributesParam){
 
       isAIMLFileLoadingStarted = false;
       isAIMLFileLoaded = false;
+      ee.emit("AIML CLEARED");
     }
 };
 
@@ -114,7 +172,7 @@ var cleanDom = function(childNodes){
         if(childNodes[i].hasOwnProperty('text') & typeof(childNodes[i].text) === 'string'){
 
             // remove all nodes of type 'text' when they just contain '\r\n'. This indicates line break in the AIML file
-            if(childNodes[i].text.match(/^\s*\r\n\s*$/gi)){
+            if(childNodes[i].text.match(/^\s*\r?\n\s*$/gi)){
                 childNodes.splice(i, 1);
             }
         }
@@ -488,5 +546,7 @@ var getWildCardValue = function(userInput, patternText){
 
     return wildCardArray;
 }
+
+AIMLInterpreter.rootNode = root;
 
 module.exports = AIMLInterpreter;

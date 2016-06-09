@@ -7,7 +7,8 @@
     "url": "https://github.com/raethlein/AIML.js/issues"
   },
   "dependencies": {
-    "dom-js": "~0.0.9"
+    "dom-js": "~0.0.9",
+    "eventemitter": "^0.3.3"
   },
   "description": "Module to interpret AIML files in node.js",
   "devDependencies": {},
@@ -21,7 +22,7 @@
     "bot",
     "interpreter"
   ],
-  "license": "BSD",
+  "license": "BSD-2-Clause",
   "main": "AIML2Interpreter.js",
   "maintainers": [
     {
