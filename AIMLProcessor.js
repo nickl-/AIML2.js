@@ -48,7 +48,7 @@ function categoryProcessor(node, topic, filename, language)
     }
     else if (mName == "template")
     {
-      console.log("Found template tag: " + DOMPrinter.serializeToString(m));
+      // console.log("Found template tag: " + DOMPrinter.serializeToString(m));
       c.template = trimTag(DOMPrinter.serializeToString(m), 'template').trim();
     }
     else
@@ -94,7 +94,7 @@ AIMLProcessor.prototype.AIMLToCategories = function (filename) {
       var c = categoryProcessor(n, '*', filename, language);
       if (c)
       {
-        console.log("Adding ndoe " + i);
+        // console.log("Adding node " + i);
         this.categories.push(c);
       }
       else
