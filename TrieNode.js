@@ -134,7 +134,14 @@ TrieNode.prototype.match = function (input, that, topic) {
   console.log("Searching for sentence to match ", inputThatTopic);
   var p = Path.sentenceToPath(inputThatTopic);
   var starState = "inputStars";
-  var n = this.$match(p, inputThatTopic, starState, 0, [], [], [], "");
+  var inputStars = new Array(),
+    topicStars = new Array(),
+    thatStars = new Array();
+  var n = this.$match(p, inputThatTopic, starState, 0, inputStars, thatStars, topicStars, "");
+  console.log("input * = ", inputStars );
+  console.log("that * = ", thatStars );
+  console.log("topic * = ", topicStars );
+
   return n;
 }
 
@@ -167,10 +174,11 @@ var setStars = function(starWords, starIndex, starState, inputStars, thatStars, 
   if (starIndex < 10)
   {
     starWords = starWords.trim();
-    if (starState == 'inputStar') { inputStars[starIndex] = starWords }
-    else if (starState == "thatStar") { thatStars[starIndex] = starWords }
-    else if (starState === "topicStar") { topicStars[starIndex] = starWords }
+    if (starState == 'inputStars') { inputStars[starIndex] = starWords }
+    else if (starState == "thatStars") { thatStars[starIndex] = starWords }
+    else if (starState === "topicStars") { topicStars[starIndex] = starWords }
   }
+
 }
 
 function failMatch(location, trace) {
