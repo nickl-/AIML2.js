@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "dom-js": "~0.0.9",
-    "eventemitter": "^0.3.3"
+    "eventemitter": "^0.3.3",
+    "xmldom": "^0.1.22"
   },
   "description": "Module to interpret AIML files in node.js",
   "devDependencies": {},
