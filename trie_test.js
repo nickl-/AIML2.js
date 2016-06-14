@@ -23,11 +23,10 @@ root = new TrieNode(bot);
 
 console.log(root.findNode(Path.sentenceToPath('MY DOG HAS FLEAS')));
 
-var brain = new AIMLProcessor();
-brain.AIMLToCategories('./personality.aiml');
+var categories = AIMLProcessor.AIMLToCategories('./personality.aiml');
 
-console.log("Loaded ", brain.categories.length, " categories.");
-for (var c of brain.categories)
+console.log("Loaded ", categories.length, " categories.");
+for (var c of categories)
 {
   p = Path.sentenceToPath(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic);
   root.addPath(p, c);

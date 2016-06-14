@@ -3,27 +3,20 @@ var DOMParser = new xmldom.DOMParser();
 var DOMPrinter = new xmldom.XMLSerializer();
 var fs = require('fs');
 
-function AIMLProcessor() {
-  this.categories = [];
-}
-
-
 function trimTag(serializedXML, tagName)
 {
-    // pull the middle bit out of this XML with a regexp
-    var startTag = "<" + tagName + ">",
-      endTag = "</" + tagName + ">";
-    // console.log("Stripping ", tagName, " tags from ", serializedXML);
-    if (serializedXML.startsWith(startTag) &&
-        serializedXML.endsWith(endTag))
-    {
-      // if there was a match, the full match is in
-      // matched[0] and the first bracket matched is in matched[1]
-      return serializedXML.substr(startTag.length, serializedXML.length - startTag.length - endTag.length);
-    }
+  // pull the middle bit out of this XML with a regexp
+  var startTag = "<" + tagName + ">",
+  endTag = "</" + tagName + ">";
+  // console.log("Stripping ", tagName, " tags from ", serializedXML);
+  if (serializedXML.startsWith(startTag) &&
+  serializedXML.endsWith(endTag))
+  {
+    // if there was a match, the full match is in
+    // matched[0] and the first bracket matched is in matched[1]
+    return serializedXML.substr(startTag.length, serializedXML.length - startTag.length - endTag.length);
+  }
 }
-
-AIMLProcessor.trimTag = trimTag;
 
 function categoryProcessor(node, topic, filename, language)
 {
@@ -37,17 +30,17 @@ function categoryProcessor(node, topic, filename, language)
     else if (mName == "pattern")
     {
       c.pattern = trimTag(DOMPrinter.serializeToString(m), 'pattern')
-        .replace(/[\r\n]/g, '').replace(/\s+/g, ' ').trim();
+      .replace(/[\r\n]/g, '').replace(/\s+/g, ' ').trim();
     }
     else if (mName == "that")
     {
       c.that = trimTag(DOMPrinter.serializeToString(m), 'that')
-        .replace(/[\r\n]/g, '').replace(/\s+/g, ' ').trim();
+      .replace(/[\r\n]/g, '').replace(/\s+/g, ' ').trim();
     }
     else if (mName == "topic")
     {
       c.topic = trimTag(DOMPrinter.serializeToString(m), 'topic')
-        .replace(/[\r\n]/g, '').replace(/\s+/g, ' ').trim();
+      .replace(/[\r\n]/g, '').replace(/\s+/g, ' ').trim();
     }
     else if (mName == "template")
     {
@@ -65,11 +58,14 @@ function categoryProcessor(node, topic, filename, language)
   }
   else
   {
-      return c;
+    return c;
   }
 }
 
-AIMLProcessor.prototype.AIMLToCategories = function (filename) {
+function  AIMLToCategories(filename) {
+  // Return an Array of categories
+  var categories = new Array();
+
   // load the file into a single string
   var aiml_string = fs.readFileSync(filename, {encoding:'utf-8'});
   var language = 'english'; // should define a default somewhere
@@ -98,7 +94,7 @@ AIMLProcessor.prototype.AIMLToCategories = function (filename) {
       if (c)
       {
         // console.log("Adding node " + i);
-        this.categories.push(c);
+        categories.push(c);
       }
       else
       {
@@ -110,18 +106,24 @@ AIMLProcessor.prototype.AIMLToCategories = function (filename) {
       var topic = n.getAttribute('name');
       for (var j = 0; j < n.childNodes.length; j++)
       {
-          var m = n.childNodes[j];
-          if (m.nodeName == 'category')
+        var m = n.childNodes[j];
+        if (m.nodeName == 'category')
+        {
+          var c = categoryProcessor(m, topic, filename, language);
+          if (c)
           {
-            var c = categoryProcessor(m, topic, filename, language);
-            if (c)
-            {
-              this.categories.push(c);
-            }
+            categories.push(c);
           }
+        }
       }
     }
   }
+  return categories;
+}
+
+var AIMLProcessor = {
+  trimTag: trimTag,
+  AIMLToCategories: AIMLToCategories
 }
 
 module.exports = AIMLProcessor;
