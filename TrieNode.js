@@ -73,9 +73,9 @@ TrieNode.prototype.upgrade = function () {
 }
 
 TrieNode.prototype.addSets = function (word, fileName) {
-  console.log("Adding set "  + word);
+  // console.log("Adding set "  + word);
   var setName = AIMLProcessor.trimTag(word, "set");
-  console.log("this.both.setMap.has(" + setName + ") : " + this.bot.setMap.has(setName));
+  // console.log("this.bot.setMap.has(" + setName + ") : " + this.bot.setMap.has(setName));
   if (this.bot.setMap.has(setName)) {
     if (!this.sets) { this.sets = new Array(); }
     this.sets.push(setName)
@@ -330,7 +330,6 @@ TrieNode.prototype.setMatch = function (path, input, starState, starIndex, input
   if (!this.sets || path.word == "<THAT>" || path.word == "<TOPIC>") { return null; }
   for( var setName of this.sets )
   {
-    console.log("Checking for match to <set>" + setName + "</set>");
     var nextNode = this.get("<set>"+setName+"</set>");
     aimlSet = this.bot.setMap.get(setName);
     var matchedNode, bestMatchedNode = null;
@@ -339,9 +338,10 @@ TrieNode.prototype.setMatch = function (path, input, starState, starIndex, input
     var length = 1;
     for (var qath = path.next; qath && currentWord != "<THAT>" && currentWord != "<TOPIC>" && length <= aimlSet.maxLength; qath = qath.next) {
       var phrase = this.bot.preProcessor.normalize(starWords.trim()).toUpperCase();
-      console.log("Checking for " + phrase + " in aimlSet " + aimlSet);
+      // console.log("Searching for phrase \"" + phrase + "\"");
       if (aimlSet.indexOf(phrase) > -1)
       {
+        // console.log("Found it")
         matchedNode = nextNode.$match(qath, input, starState, starIndex+1, inputStars, thatStars, topicStars, matchTrace);
         if (matchedNode)
         {
