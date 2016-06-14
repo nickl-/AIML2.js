@@ -22,6 +22,9 @@ function trimTag(serializedXML, tagName)
       return serializedXML.substr(startTag.length, serializedXML.length - startTag.length - endTag.length);
     }
 }
+
+AIMLProcessor.trimTag = trimTag;
+
 function categoryProcessor(node, topic, filename, language)
 {
   // console.log("Processing category node ", DOMPrinter.serializeToString(node));
