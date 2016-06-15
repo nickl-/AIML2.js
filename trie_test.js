@@ -11,45 +11,10 @@ bot.setMap.set("be", tmpSet);
 
 bot.loadAIMLFiles();
 
-var matchedNode = bot.respond("YOU ARE LAZY", "*", "*");
-//var matchedNode = root.findNode(Path.sentenceToPath("YOU ARE LAZY <THAT> * <TOPIC> *"));
-if (matchedNode)
-{
-console.log(matchedNode.category.template);
-}
-else
-{
-  console.log("Did not find match");
-}
+console.log(bot.respond("YOU ARE LAZY", "*", "*"));
 
-matchedNode = bot.respond("WHY WILL NOT YOU BONK AND JIVE", "*", "*");
-//var matchedNode = root.findNode(Path.sentenceToPath("YOU ARE LAZY <THAT> * <TOPIC> *"));
-if (matchedNode)
-{
-console.log(matchedNode.category.template);
-}
-else
-{
-  console.log("Did not find match");
-}
+console.log(bot.respond("WHY WILL NOT YOU BONK AND JIVE", "*", "*"));
 
-var matchedNode = bot.respond("What is cheez whiz made from?", "*", "*");
-//var matchedNode = root.findNode(Path.sentenceToPath("YOU ARE LAZY <THAT> * <TOPIC> *"));
-if (matchedNode)
-{
-console.log(matchedNode.category.template);
-}
-else
-{
-  console.log("Did not find match");
-}
+console.log(bot.respond("What is cheez whiz made from?", "*", "*"));
 
-matchedNode = bot.respond("WOULD YOU RATHER FISH SALMON OR TROUT", "*", "*");
-if (matchedNode)
-{
-  console.log(matchedNode.category.template);
-}
-else
-{
-  console.log("Did not find match");
-}
+console.log(bot.respond("WOULD YOU RATHER FISH SALMON OR TROUT", "*", "*"));

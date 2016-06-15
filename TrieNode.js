@@ -156,7 +156,7 @@ TrieNode.prototype.match = function (input, that, topic) {
   console.log("that * = ", thatStars );
   console.log("topic * = ", topicStars );
 
-  return n;
+  return {category: n.category, inputStars: inputStars, thatStars: thatStars, topicStars: topicStars};
 }
 
 TrieNode.prototype.$match = function (path, inputThatTopic, starState, starIndex, inputStars, thatStars, topicStars, matchTrace) {

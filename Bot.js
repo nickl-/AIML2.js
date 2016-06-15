@@ -56,11 +56,18 @@ Bot.prototype.respond = function (input) {
     if (sentence.length > 0)
     {
       matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()).toUpperCase(), "*", "*");
-      if (matchedNode) { response = response + matchedNode.category.template }
-      else { response = response + " ERROR " }
+      if (matchedNode)
+      {
+        response = response
+          + AIMLProcessor.evalTemplate(matchedNode.category.template);
+      }
+      else
+      {
+        response = response + " ERROR "
+      }
     }
   }
-  return matchedNode;
+  return response;
 }
 
 module.exports = Bot;

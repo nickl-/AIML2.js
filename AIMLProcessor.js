@@ -121,9 +121,69 @@ function  AIMLToCategories(filename) {
   return categories;
 }
 
+function getAttributeOrTagValue(node, attrName)
+{
+  var result = "";
+  if (node.hasAttribute(attrName)) { return node.getAttribute(attrName) }
+  for (var i = 0; i < node.childNodes.length; i++)
+  {
+    var n = node.childNodes[i];
+    if (n.nodeName == attrName) { return evalTagContent( n ) }
+  }
+}
+
+function evalTagContent(node)
+{
+  var result = "";
+  if (node.hasChildNodes())
+  {
+    for (var i = 0; i < node.childNodes.length; i++)
+    {
+      result = result + recursEval(node.childNodes[i]);
+    }
+  }
+  return result;
+}
+
+function random(node) {
+  var liList = [];
+  for (var i = 0; i < node.childNodes.length; i++)
+  {
+    var n = node.childNodes[i];
+    if (n.nodeName == "li")
+    {
+      liList.push(n)
+    }
+  }
+  var r = Math.floor(Math.random() * liList.length);
+  return evalTagContent(liList[r]);
+}
+
+function recursEval(node)
+{
+  if (node.nodeName == "#text") { return node.nodeValue }
+  else if (node.nodeName == "#comment") { return "" }
+  else if (node.nodeName == "template") { return evalTagContent(node) }
+  else if (node.nodeName == "random" ) { return random(node) }
+
+}
+
+function evalTemplate(template, sraiCount) {
+  if (sraiCount == undefined) { sraiCount = 0; }
+  var response = "";
+  template = "<template>"+template+"</template>";
+  var root = DOMParser.parseFromString(template).childNodes[0];
+  response = recursEval(root, sraiCount);
+  return response;
+}
+
 var AIMLProcessor = {
   trimTag: trimTag,
-  AIMLToCategories: AIMLToCategories
+  AIMLToCategories: AIMLToCategories,
+  evalTemplate: evalTemplate,
+
+  getAttributeOrTagValue: getAttributeOrTagValue,
+
 }
 
 module.exports = AIMLProcessor;
