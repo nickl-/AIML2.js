@@ -82,8 +82,9 @@ Bot.prototype.respond = function (input, callback) {
         matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()).toUpperCase(), "*", "*");
         if (matchedNode)
         {
+          var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, new Array(), this);
           response = response
-          + AIMLProcessor.evalTemplate(matchedNode.category.template, matchedNode.inputStars);
+            + ap.evalTemplate();
         }
         else
         {

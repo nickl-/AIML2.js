@@ -3,6 +3,16 @@ var DOMParser = new xmldom.DOMParser();
 var DOMPrinter = new xmldom.XMLSerializer();
 var fs = require('fs');
 
+function AIMLProcessor(template, inputStars, thatStars, topicStars, history, bot) {
+  this.template = template;
+  this.inputStars = inputStars;
+  this.thatStars = thatStars;
+  this.topicStars = topicStars;
+  this.history = history;
+  this.bot = bot;
+  this.sraiCount = 0;
+}
+
 function trimTag(serializedXML, tagName)
 {
   // pull the middle bit out of this XML with a regexp
@@ -124,31 +134,32 @@ function  AIMLToCategories(filename, callback) {
   });
 }
 
-function getAttributeOrTagValue(node, inputStars, sraiCount, attrName)
+AIMLProcessor.prototype.getAttributeOrTagValue = function (node, attrName)
 {
   var result = "";
   if (node.hasAttribute(attrName)) { return node.getAttribute(attrName) }
   for (var i = 0; i < node.childNodes.length; i++)
   {
     var n = node.childNodes[i];
-    if (n.nodeName == attrName) { return evalTagContent( n, inputStars, sraiCount ) }
+    if (n.nodeName == attrName) { return this.evalTagContent( n ) }
   }
 }
 
-function evalTagContent(node, inputStars, sraiCount)
+AIMLProcessor.prototype.evalTagContent = function(node)
 {
   var result = "";
   if (node.hasChildNodes())
   {
     for (var i = 0; i < node.childNodes.length; i++)
     {
-      result = result + recursEval(node.childNodes[i], inputStars, sraiCount);
+      result = result + this.recursEval(node.childNodes[i]);
     }
   }
   return result;
 }
 
-function random(node, inputStars, sraiCount) {
+AIMLProcessor.prototype.random = function(node)
+{
   var liList = [];
   for (var i = 0; i < node.childNodes.length; i++)
   {
@@ -159,42 +170,36 @@ function random(node, inputStars, sraiCount) {
     }
   }
   var r = Math.floor(Math.random() * liList.length);
-  return evalTagContent(liList[r], inputStars, sraiCount);
+  return this.evalTagContent(liList[r]);
 }
 
-function star(node, inputStars, sraiCount)
+AIMLProcessor.prototype.inputStar = function(node)
 {
-  var index = getAttributeOrTagValue(node, inputStars, sraiCount, "index") - 1;
+  var index = this.getAttributeOrTagValue(node, "index") - 1;
   if (!index) { index = 0; }
-  return inputStars[index];
+  return this.inputStars[index];
 }
 
-function recursEval(node, inputStars, sraiCount)
+AIMLProcessor.prototype.recursEval = function (node)
 {
   if (node.nodeName == "#text") { return node.nodeValue }
   else if (node.nodeName == "#comment") { return "" }
-  else if (node.nodeName == "template") { return evalTagContent(node, inputStars, sraiCount) }
-  else if (node.nodeName == "random" ) { return random(node, inputStars, sraiCount) }
-  else if (node.nodeName == "star") { return star(node, inputStars, sraiCount ) }
+  else if (node.nodeName == "template") { return this.evalTagContent( node ) }
+  else if (node.nodeName == "random" ) { return this.random( node ) }
+  else if (node.nodeName == "star") { return this.inputStar( node ) }
 
 }
 
-function evalTemplate(template, inputStars, sraiCount) {
-  if (sraiCount == undefined) { sraiCount = 0; }
+AIMLProcessor.prototype.evalTemplate = function () {
   var response = "";
-  template = "<template>"+template+"</template>";
+  var template = "<template>"+this.template+"</template>";
   var root = DOMParser.parseFromString(template).childNodes[0];
-  response = recursEval(root, inputStars, sraiCount);
+  response = this.recursEval(root);
   return response;
 }
 
-var AIMLProcessor = {
-  trimTag: trimTag,
-  AIMLToCategories: AIMLToCategories,
-  evalTemplate: evalTemplate,
-
-  // getAttributeOrTagValue: getAttributeOrTagValue,
-
-}
+// Static functions
+AIMLProcessor.trimTag =  trimTag;
+AIMLProcessor.AIMLToCategories = AIMLToCategories;
 
 module.exports = AIMLProcessor;
