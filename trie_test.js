@@ -11,10 +11,10 @@ bot.setMap.set("be", tmpSet);
 
 bot.loadAIMLFiles();
 
-console.log(bot.respond("YOU ARE LAZY", "*", "*"));
+bot.respond("YOU ARE LAZY", console.log);
 
-console.log(bot.respond("WHY WILL NOT YOU BONK AND JIVE", "*", "*"));
+bot.respond("WHY WILL NOT YOU BONK AND JIVE", console.log);
 
-console.log(bot.respond("What is cheez whiz made from?", "*", "*"));
+bot.respond("What is cheez whiz made from?", console.log);
 
-console.log(bot.respond("WOULD YOU RATHER FISH SALMON OR TROUT", "*", "*"));
+bot.respond("WOULD YOU RATHER FISH SALMON OR TROUT", console.log);

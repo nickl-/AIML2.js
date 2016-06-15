@@ -64,7 +64,7 @@ function readSubstitutions(filename, patterns, subs)
       {
         // these are meant to be literal repalcementts so we need to escape
         // special regexp characters
-        pattern = match[1].replace(/([\.\*\?\+\\\(\)\[\]])/g, '\\$1');
+        pattern = match[1].replace(/([\.\*\?\+\\\(\)\[\]\^\$])/g, '\\$1');
         patterns.push(new RegExp(pattern, "gi"));
         subs.push(match[2]);
         count++;

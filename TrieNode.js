@@ -144,6 +144,7 @@ function makeInputThatTopic(input, that, topic) {
 }
 
 TrieNode.prototype.match = function (input, that, topic) {
+  console.log("Got input, that, topic = ", input, that, topic);
   var inputThatTopic = makeInputThatTopic(input, that, topic);
   console.log("Searching for sentence to match ", inputThatTopic);
   var p = Path.sentenceToPath(inputThatTopic);

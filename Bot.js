@@ -31,43 +31,73 @@ function Bot(botAttributes) {
   this.botAttributes = botAttributes;
   this.preProcessor = new PreProcessor(this);
   this.root = new TrieNode(this);
+  console.log("this.root = "+this.root);
 }
 
 Bot.prototype.loadAIMLFiles = function () {
   this.isAIMLFileLoadingStarted = true;
 
-  var categories = AIMLProcessor.AIMLToCategories('./personality.aiml');
-  console.log("Loaded ", categories.length, " categories.");
-  for (var c of categories)
-  {
-    p = Path.sentenceToPath(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic);
-    this.root.addPath(p, c);
-  }
+  var default_aiml_dir = "./bots/alice2/aiml";
 
-  this.isAIMLFileLoadingFinished = true;
-}
+  fs.readdir(default_aiml_dir, (function (err,files) {
 
-Bot.prototype.respond = function (input) {
-  var response = '', matchedNode;
-
-  for (sentence of input.split(/[\.\?!]/))
-  {
-    sentence = sentence.trim();
-    if (sentence.length > 0)
-    {
-      matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()).toUpperCase(), "*", "*");
-      if (matchedNode)
+    function processCategories(categories) {
+      console.log("Loaded ", categories.length, " categories.");
+      for (var c of categories)
       {
-        response = response
-          + AIMLProcessor.evalTemplate(matchedNode.category.template);
+        p = Path.sentenceToPath(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic);
+        this.root.addPath(p, c);
+      }
+      return loadAIMLFile.call(this, files.shift());
+    }
+
+    function loadAIMLFile(filename) {
+      if (filename)
+      {
+        AIMLProcessor.AIMLToCategories(default_aiml_dir + "/" + filename, processCategories.bind(this));
+
       }
       else
       {
-        response = response + " ERROR "
+        this.isAIMLFileLoadingFinished = true;
       }
     }
+
+    loadAIMLFile.call(this, files.shift());
+
+  }).bind(this));
+
+}
+
+Bot.prototype.respond = function (input, callback) {
+  if (this.isAIMLFileLoadingFinished)
+  {
+    var response = '', matchedNode;
+
+    for (sentence of input.split(/[\.\?!]/))
+    {
+      sentence = sentence.trim();
+      if (sentence.length > 0)
+      {
+        matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()).toUpperCase(), "*", "*");
+        if (matchedNode)
+        {
+          response = response
+          + AIMLProcessor.evalTemplate(matchedNode.category.template, matchedNode.inputStars);
+        }
+        else
+        {
+          response = response + " ERROR "
+        }
+      }
+    }
+    callback(response);
   }
-  return response;
+  else
+  {
+    console.log("Bot not ready yet... trying again in 1 second.");
+    setTimeout((function() { this.respond(input, callback) }).bind(this), 1000);
+  }
 }
 
 module.exports = Bot;
