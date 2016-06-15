@@ -144,18 +144,18 @@ function makeInputThatTopic(input, that, topic) {
 }
 
 TrieNode.prototype.match = function (input, that, topic) {
-  console.log("Got input, that, topic = ", input, that, topic);
+  // console.log("Got input, that, topic = ", input, that, topic);
   var inputThatTopic = makeInputThatTopic(input, that, topic);
-  console.log("Searching for sentence to match ", inputThatTopic);
+  // console.log("Searching for sentence to match ", inputThatTopic);
   var p = Path.sentenceToPath(inputThatTopic);
   var starState = "inputStars";
   var inputStars = new Array(),
     topicStars = new Array(),
     thatStars = new Array();
   var n = this.$match(p, inputThatTopic, starState, 0, inputStars, thatStars, topicStars, "");
-  console.log("input * = ", inputStars );
-  console.log("that * = ", thatStars );
-  console.log("topic * = ", topicStars );
+  // console.log("input * = ", inputStars );
+  // console.log("that * = ", thatStars );
+  // console.log("topic * = ", topicStars );
 
   return {category: n.category, inputStars: inputStars, thatStars: thatStars, topicStars: topicStars};
 }

@@ -31,7 +31,7 @@ function Bot(botAttributes) {
   this.botAttributes = botAttributes;
   this.preProcessor = new PreProcessor(this);
   this.root = new TrieNode(this);
-  console.log("this.root = "+this.root);
+  // console.log("this.root = "+this.root);
 }
 
 Bot.prototype.loadAIMLFiles = function () {
@@ -79,7 +79,7 @@ Bot.prototype.respond = function (input, callback) {
       sentence = sentence.trim();
       if (sentence.length > 0)
       {
-        matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()).toUpperCase(), "*", "*");
+        matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()), "*", "*");
         if (matchedNode)
         {
           var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, new Array(), this);

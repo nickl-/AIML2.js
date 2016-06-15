@@ -11,10 +11,24 @@ bot.setMap.set("be", tmpSet);
 
 bot.loadAIMLFiles();
 
-bot.respond("YOU ARE LAZY", console.log);
+setTimeout( function runTest() {
+  console.log("Called runTest()");
+  if (bot.isAIMLFileLoadingFinished) {
 
-bot.respond("WHY WILL NOT YOU BONK AND JIVE", console.log);
+function askAlice(req) {
+  console.log(">> "+ req);
+  bot.respond(req, console.log);
+}
 
-bot.respond("What is cheez whiz made from?", console.log);
+askAlice("You are lazy.");
 
-bot.respond("WOULD YOU RATHER FISH SALMON OR TROUT", console.log);
+askAlice("Why will not you bonk and jive?");
+
+askAlice("What is cheez whiz made from?");
+
+askAlice("Would you rather fish salmon or trout?");
+
+} else {
+  setTimeout(runTest, 1000);
+}
+}, 1000);

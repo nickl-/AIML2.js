@@ -180,6 +180,20 @@ AIMLProcessor.prototype.inputStar = function(node)
   return this.inputStars[index];
 }
 
+AIMLProcessor.prototype.thatStar = function(node)
+{
+  var index = this.getAttributeOrTagValue(node, "index") - 1;
+  if (!index) { index = 0; }
+  return this.thatStars[index];
+}
+
+AIMLProcessor.prototype.topicStar = function(node)
+{
+  var index = this.getAttributeOrTagValue(node, "index") - 1;
+  if (!index) { index = 0; }
+  return this.topicStars[index];
+}
+
 AIMLProcessor.prototype.recursEval = function (node)
 {
   if (node.nodeName == "#text") { return node.nodeValue }
@@ -187,6 +201,8 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "template") { return this.evalTagContent( node ) }
   else if (node.nodeName == "random" ) { return this.random( node ) }
   else if (node.nodeName == "star") { return this.inputStar( node ) }
+  else if (node.nodeName == "thatstar") { return this.inputStar( node ) }
+  else if (node.nodeName == "topicstar") { return this.inputStar( node ) }
 
 }
 
