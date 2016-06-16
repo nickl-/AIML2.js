@@ -194,6 +194,12 @@ AIMLProcessor.prototype.topicStar = function(node)
   return this.topicStars[index];
 }
 
+AIMLProcessor.prototype.botNode = function (node)
+{
+  var prop = this.getAttributeOrTagValue(node, "name");
+  return this.bot.properties.get(prop).trim();
+}
+
 AIMLProcessor.prototype.recursEval = function (node)
 {
   if (node.nodeName == "#text") { return node.nodeValue }
@@ -203,7 +209,8 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "star") { return this.inputStar( node ) }
   else if (node.nodeName == "thatstar") { return this.inputStar( node ) }
   else if (node.nodeName == "topicstar") { return this.inputStar( node ) }
-
+  else if (node.nodeName == "bot") { return this.botNode( node ) }
+  else { return DOMPrinter.serializeToString(node) }
 }
 
 AIMLProcessor.prototype.evalTemplate = function () {

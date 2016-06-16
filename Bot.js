@@ -1,5 +1,8 @@
 DomJS = require("dom-js").DomJS;
 fs = require('fs');
+readline = require("readline");
+xmldom = require("xmldom")
+DOMPrinter = new xmldom.XMLSerializer();
 
 TrieNode = require('./TrieNode');
 Path = require('./Path');
@@ -9,29 +12,66 @@ var PreProcessor = require('./PreProcessor');
 
 var ee = new EventEmitter();
 
-var storedVariableValues = {};
-var botAttributes = {};
-
-var lastWildCardValue = '';
-var wildCardArray = [];
-
-var domArray = [];
-var fileArray = [];
-var domIndex = 0;
-
-var isAIMLFileLoadingStarted = false;
-var isAIMLFileLoaded = false;
-
-var previousAnswer = '';
-var previousThinkTag = false;
-
-var root = new TrieNode();
-
-function Bot(botAttributes) {
-  this.botAttributes = botAttributes;
+function Bot(name, path) {
+  this.name = name;
+  this.setAllPaths(path, name);
+  this.addProperties();
   this.preProcessor = new PreProcessor(this);
   this.root = new TrieNode(this);
+  this.setMap = new Map();
+  this.mapMap = new Map();
   // console.log("this.root = "+this.root);
+}
+
+Bot.prototype.setAllPaths = function (root, name) {
+  var paths = {};
+  paths.bots    = root+"/bots";
+  paths.bot     = paths.bots+"/"+name;
+  paths.aiml    = paths.bot+"/aiml";
+  paths.aimlif  = paths.bot+"/aimlif";
+  paths.config  = paths.bot+"/config";
+  paths.log     = paths.bot+"/logs";
+  paths.sets    = paths.bot+"/sets";
+  paths.maps    = paths.bot+"/maps";
+  this.paths = paths;
+}
+
+Bot.prototype.addProperties = function()
+{
+  this.properties = new Map();
+
+  var rl = readline.createInterface({
+    input: fs.createReadStream(this.paths.config +"/properties.txt")
+  });
+
+  var count = 0;
+  rl.on('line', (line) => {
+    line = line.trim();
+    if (line.indexOf(":") > -1)
+    {
+      var pair = line.trim().split(/:/)
+      this.properties.set(pair[0].trim(), pair[1].trim());
+        count++;
+    }
+  });
+
+  rl.on('close', () => {
+    console.log("Added " + count + " properties.");
+  });
+  return count; // this doesn't actually work because of callbacks and events and stuff. I think a Promise might be a way to fix it but I don't really understand promises yet.
+}
+
+Bot.prototype.replaceBotProperties = function(pattern)
+{
+  var offset = 0, match,
+    properties = this.properties, preproc = this.preProcessor;
+  do
+  {
+    prevPattern = pattern;
+    pattern = pattern.replace(/<bot name="(.*?)"\/>/i, function (str, p1, offset, s) { return preproc.normalize(properties.get(p1)).toUpperCase().trim() });
+    // if (prevPattern != pattern) { console.log("  relaceBotProperties: " + prevPattern + " -> " +pattern) }
+  } while (prevPattern != pattern);
+  return pattern;
 }
 
 Bot.prototype.loadAIMLFiles = function () {
@@ -45,7 +85,7 @@ Bot.prototype.loadAIMLFiles = function () {
       console.log("Loaded ", categories.length, " categories.");
       for (var c of categories)
       {
-        p = Path.sentenceToPath(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic);
+        p = Path.sentenceToPath(this.replaceBotProperties(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic));
         this.root.addPath(p, c);
       }
       return loadAIMLFile.call(this, files.shift());
@@ -74,14 +114,21 @@ Bot.prototype.respond = function (input, callback) {
   {
     var response = '', matchedNode;
 
+    input = this.preProcessor.normalize(input);
+    input = input.replace("。",".");
+    input = input.replace("？","?");
+    input = input.replace("！","!");
+
     for (sentence of input.split(/[\.\?!]/))
     {
       sentence = sentence.trim();
       if (sentence.length > 0)
       {
+        // console.log("Searching for sentence " + sentence);
         matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()), "*", "*");
         if (matchedNode)
         {
+          // console.log(DOMPrinter.serializeToString(matchedNode.category.pattern)+matchedNode.category.file);
           var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, new Array(), this);
           response = response
             + ap.evalTemplate();

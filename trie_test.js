@@ -3,7 +3,7 @@ var Path = require('./Path');
 var AIMLProcessor = require('./AIMLProcessor');
 var Bot = require('./Bot');
 
-var bot = new Bot({name: 'Alice', age: 42});
+var bot = new Bot('alice2', './');
 bot.setMap = new Map();
 tmpSet = ["FISH", "MATTER", "SLEEP", "LOVE"];
 tmpSet.maxLength = 1;
@@ -26,7 +26,9 @@ askAlice("Why will not you bonk and jive?");
 
 askAlice("What is cheez whiz made from?");
 
-askAlice("Would you rather fish salmon or trout?");
+askAlice("Would you rather fish for salmon or sleep in?");
+
+askAlice("Alice 2.0, Name a beach");
 
 } else {
   setTimeout(runTest, 1000);

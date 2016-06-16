@@ -55,7 +55,6 @@ function readSubstitutions(filename, patterns, subs)
 
   var count = 0;
   rl.on('line', (line) => {
-    var count = 0;
     line = line.trim();
     if (!line.startsWith(MagicStrings.text_comment_mark))
     {
