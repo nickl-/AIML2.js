@@ -34,3 +34,15 @@ askAlice("Alice 2.0, Name a beach");
   setTimeout(runTest, 1000);
 }
 }, 1000);
+
+
+const readline = require('readline');
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+rl.on('line', (line) => {
+  bot.respond(line, console.log);
+});

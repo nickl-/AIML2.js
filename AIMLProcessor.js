@@ -137,11 +137,15 @@ function  AIMLToCategories(filename, callback) {
 AIMLProcessor.prototype.getAttributeOrTagValue = function (node, attrName)
 {
   var result = "";
-  if (node.hasAttribute(attrName)) { return node.getAttribute(attrName) }
+  if (node.hasAttribute(attrName)) {
+    return node.getAttribute(attrName)
+  }
   for (var i = 0; i < node.childNodes.length; i++)
   {
     var n = node.childNodes[i];
-    if (n.nodeName == attrName) { return this.evalTagContent( n ) }
+    if (n.nodeName == attrName) {
+      return this.evalTagContent( n )
+    }
   }
 }
 
@@ -200,6 +204,37 @@ AIMLProcessor.prototype.botNode = function (node)
   return this.bot.properties.get(prop).trim();
 }
 
+AIMLProcessor.prototype.date = function(node) {
+  var format   = this.getAttributeOrTagValue(node, "format");
+  var locale   = this.getAttributeOrTagValue(node, "locale");
+  var timezone = this.getAttributeOrTagValue(node, "timezone");
+  var strftime = require('strftime');
+  // console.log("Date tag with format " + format + " locale " + locale + " timzeone " + timezone);
+  var result = strftime.timezone(timezone).localize(locale)(format);
+  // console.log("   Result:" + result);
+  return result;
+}
+
+AIMLProcessor.prototype.interval = function(node) {
+  // console.log(DOMPrinter.serializeToString(node));
+  var style  = this.getAttributeOrTagValue(node, "style");
+  var format = this.getAttributeOrTagValue(node, "format");
+  var from   = Date.parse(this.getAttributeOrTagValue(node, "from"));
+  var to     = Date.parse(this.getAttributeOrTagValue(node, "to"));
+  // console.log("Looking for interval between " + from + ' and ' + to);
+  if (style == null)   { style = "years" }
+  if (format == null) { format = "%B %d, %Y"; }
+  if (from == null)    { from = Date.parse("January 1, 1970") }
+  if (to == null)      { to = new Date()}
+  var delta = new Date(to - from);
+  var result = "unknown";
+  if (style == "years")  { result = ""+Math.floor(delta.getYear()-70) }
+  if (style == "months") { result = ""+Math.floor( (delta.getYear()-70)*12 + delta.getMonth() ) }
+  if (style == "days")   { result = ""+Math.floor( delta.valueOf() / (24*60*60*1000) ) }
+  if (style == "hours" ) { result = ""+Math.floor( delta.valueOf() / (60*60*1000) ) }
+  return result
+}
+
 AIMLProcessor.prototype.recursEval = function (node)
 {
   if (node.nodeName == "#text") { return node.nodeValue }
@@ -210,6 +245,8 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "thatstar") { return this.inputStar( node ) }
   else if (node.nodeName == "topicstar") { return this.inputStar( node ) }
   else if (node.nodeName == "bot") { return this.botNode( node ) }
+  else if (node.nodeName == "interval") { return this.interval(node) }
+  else if (node.nodeName == "date") { return this.date(node) }
   else { return DOMPrinter.serializeToString(node) }
 }
 

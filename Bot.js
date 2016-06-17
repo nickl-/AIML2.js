@@ -16,10 +16,10 @@ function Bot(name, path) {
   this.name = name;
   this.setAllPaths(path, name);
   this.addProperties();
+  this.addSets();
+  this.addMaps();
   this.preProcessor = new PreProcessor(this);
   this.root = new TrieNode(this);
-  this.setMap = new Map();
-  this.mapMap = new Map();
   // console.log("this.root = "+this.root);
 }
 
@@ -60,6 +60,79 @@ Bot.prototype.addProperties = function()
   });
   return count; // this doesn't actually work because of callbacks and events and stuff. I think a Promise might be a way to fix it but I don't really understand promises yet.
 }
+
+Bot.prototype.addSets = function()
+{
+  this.sets = new Map();
+
+  var path = this.paths.sets, sets = this.sets;
+  var count = 0;
+
+  fs.readdir(path, function (err, files) {
+    if (err) { console.log("Error adding set files: "+err) }
+
+    for (var i = 0; i < files.length; i++)
+    {
+      var match = files[i].match(/^.*?([^\/\s]+)\.txt$/);// nogreedy first wildcard, default greedy second one
+      if (match)
+      {
+        var setlist = fs.readFileSync(path+"/"+files[i], {encoding: 'utf-8'});
+        setlist = setlist.trim().split(/[\r\n]+/);
+        // if (Math.random() < 0.05)
+          // console.log("Adding set: "+match[1]+" = " + setlist);
+        sets.set(match[1], setlist);
+        count = count + 1;
+      } else {
+        console.log("Adding sets: failed to match ", files[i])
+      }
+    }
+    console.log("Added "+count+" sets.");
+    return count; // this doesn't actually work because of callbacks and events and stuff. I think a Promise might be a way to fix it but I don't really understand promises yet.
+  });
+
+}
+
+Bot.prototype.addMaps = function()
+{
+  this.maps = new Map();
+
+  var path = this.paths.maps, maps = this.maps;
+  var count = 0;
+
+  fs.readdir(path, function (err, files) {
+    if (err) { console.log("Error adding map files: "+err) }
+
+    for (var i = 0; i < files.length; i++)
+    {
+      var match = files[i].match(/^.*?([^\/\s]+)\.txt$/);// nogreedy first wildcard, default greedy second one
+      if (match)
+      {
+        var maplist = fs.readFileSync(path+"/"+files[i], {encoding: 'utf-8'});
+        maplist = maplist.trim().split(/[\r\n]+/);
+        var mapmap = new Map();
+        for (var j = 0; j < maplist.length; j++)
+        {
+          var pair = maplist[j].split(/:/);
+          if (pair[0])
+          {
+            mapmap.set(pair[0], pair[1])
+          }
+        }
+        // console.log("Adding map: "+match[1]+" = " + mapmap);
+        // if (Math.random() < 0.05)
+          // mapmap.forEach(function(val, key, map) { console.log("maps["+match[1]+"]["+key+"] = "+val)});
+        maps.set(match[1], mapmap);
+        count = count + 1;
+      } else {
+        console.log("Adding maps: failed to match ", files[i])
+      }
+    }
+    console.log("Added "+count+" maps.");
+    return count; // this doesn't actually work because of callbacks and events and stuff. I think a Promise might be a way to fix it but I don't really understand promises yet.
+  });
+
+}
+
 
 Bot.prototype.replaceBotProperties = function(pattern)
 {
