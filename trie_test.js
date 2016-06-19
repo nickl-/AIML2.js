@@ -4,10 +4,10 @@ var AIMLProcessor = require('./AIMLProcessor');
 var Bot = require('./Bot');
 
 var bot = new Bot('alice2', './');
-bot.setMap = new Map();
+// bot.setMap = new Map();
 tmpSet = ["FISH", "MATTER", "SLEEP", "LOVE"];
 tmpSet.maxLength = 1;
-bot.setMap.set("be", tmpSet);
+bot.sets.set("be", tmpSet);
 
 bot.loadAIMLFiles();
 

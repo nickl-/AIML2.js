@@ -15,11 +15,12 @@ var ee = new EventEmitter();
 function Bot(name, path) {
   this.name = name;
   this.setAllPaths(path, name);
+  this.preProcessor = new PreProcessor(this);
   this.addProperties();
   this.addSets();
   this.addMaps();
-  this.preProcessor = new PreProcessor(this);
   this.root = new TrieNode(this);
+  this.sessions = [{predicates: new Map()}]; // placeholder for real session management
   // console.log("this.root = "+this.root);
 }
 
@@ -65,7 +66,8 @@ Bot.prototype.addSets = function()
 {
   this.sets = new Map();
 
-  var path = this.paths.sets, sets = this.sets;
+  var path = this.paths.sets, sets = this.sets,
+    preproc = this.preProcessor;
   var count = 0;
 
   fs.readdir(path, function (err, files) {
@@ -78,9 +80,20 @@ Bot.prototype.addSets = function()
       {
         var setlist = fs.readFileSync(path+"/"+files[i], {encoding: 'utf-8'});
         setlist = setlist.trim().split(/[\r\n]+/);
+        var maxlength = 0;
+        for (var j = 0; j < setlist.length; j++)
+        {
+          setlist[j] = preproc.normalize(setlist[j]).trim().toUpperCase();
+          maxlength = Math.max(maxlength, setlist[j].split(/ /).length)
+        }
         // if (Math.random() < 0.05)
           // console.log("Adding set: "+match[1]+" = " + setlist);
+        setlist.maxLength = maxlength;
         sets.set(match[1], setlist);
+        if (match[1] == "color")
+        {
+          console.log("color set = ", setlist);
+        }
         count = count + 1;
       } else {
         console.log("Adding sets: failed to match ", files[i])
@@ -96,7 +109,8 @@ Bot.prototype.addMaps = function()
 {
   this.maps = new Map();
 
-  var path = this.paths.maps, maps = this.maps;
+  var path = this.paths.maps, maps = this.maps,
+    preproc = this.preProcessor;
   var count = 0;
 
   fs.readdir(path, function (err, files) {
@@ -115,7 +129,7 @@ Bot.prototype.addMaps = function()
           var pair = maplist[j].split(/:/);
           if (pair[0])
           {
-            mapmap.set(pair[0], pair[1])
+            mapmap.set(pair[0], preproc.normalize(pair[1]).trim().toUpperCase())
           }
         }
         // console.log("Adding map: "+match[1]+" = " + mapmap);
@@ -201,8 +215,8 @@ Bot.prototype.respond = function (input, callback) {
         matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()), "*", "*");
         if (matchedNode)
         {
-          // console.log(DOMPrinter.serializeToString(matchedNode.category.pattern)+matchedNode.category.file);
-          var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, new Array(), this);
+          console.log(DOMPrinter.serializeToString(matchedNode.category.pattern)+matchedNode.category.file);
+          var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, this.sessions[0], this);
           response = response
             + ap.evalTemplate();
         }

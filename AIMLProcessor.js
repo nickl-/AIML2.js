@@ -3,13 +3,14 @@ var DOMParser = new xmldom.DOMParser();
 var DOMPrinter = new xmldom.XMLSerializer();
 var fs = require('fs');
 
-function AIMLProcessor(template, inputStars, thatStars, topicStars, history, bot) {
+function AIMLProcessor(template, inputStars, thatStars, topicStars, session, bot) {
   this.template = template;
   this.inputStars = inputStars;
   this.thatStars = thatStars;
   this.topicStars = topicStars;
-  this.history = history;
+  this.session = session;
   this.bot = bot;
+  this.vars = new Map();
   this.sraiCount = 0;
 }
 
@@ -149,15 +150,54 @@ AIMLProcessor.prototype.getAttributeOrTagValue = function (node, attrName)
   }
 }
 
-AIMLProcessor.prototype.evalTagContent = function(node)
+AIMLProcessor.prototype.evalTagContent = function(node, ignoreAttributes)
 {
   var result = "";
   if (node.hasChildNodes())
   {
     for (var i = 0; i < node.childNodes.length; i++)
     {
-      result = result + this.recursEval(node.childNodes[i]);
+      if (!ignoreAttributes || ignoreAttributes == [] || ignoreAttributes.indexOf(node.childNodes[i].nodeName) <= -1)
+      {
+        result = result + this.recursEval(node.childNodes[i]);
+      }
     }
+  }
+  return result;
+}
+
+AIMLProcessor.prototype.set = function(node)
+{
+  var predicateName = this.getAttributeOrTagValue(node, "name");
+  var varName       = this.getAttributeOrTagValue(node, "var");
+  var result = this.evalTagContent(node, ["name", "var"]).trim().replace(/[\r\n]/g);
+  if (predicateName)
+  {
+    this.session.predicates.set(predicateName, result);
+  }
+  else if (varName)
+  {
+    this.vars.set(varName, result);
+  }
+  if (this.bot.sets.get("pronoun").indexOf(predicateName) > - 1)
+  {
+    result = predicateName; // what?
+  }
+  return result;
+}
+
+AIMLProcessor.prototype.get = function (node)
+{
+  var predicateName = this.getAttributeOrTagValue(node, "name");
+  var varName       = this.getAttributeOrTagValue(node, "var");
+  var result;
+  if (predicateName)
+  {
+    result = this.session.predicates.get(predicateName);
+  }
+  else if (varName)
+  {
+    result = this.vars.get(varName);
   }
   return result;
 }
@@ -235,6 +275,30 @@ AIMLProcessor.prototype.interval = function(node) {
   return result
 }
 
+AIMLProcessor.prototype.srai = function(node)
+{
+  this.sraiCount = this.sraiCount + 1;
+  if (this.sraiCount > 10) { return "Too much recursion!" }
+  var result = this.bot.preProcessor.normalize(this.evalTagContent( node ).trim().replace(/[\r\n]/g));
+  // need to implement topics by way of variables and predicates
+  // once that's done, need to check for new topic here
+  var matchedNode = this.bot.root.match(result, "*", "*");
+  if (matchedNode)
+  {
+    console.log("srai evaluating " + matchedNode.category.pattern + ", " + matchedNode.category.file);
+    var template = "<template>"+matchedNode.category.template+"</template>";
+    var root = DOMParser.parseFromString(template).childNodes[0];
+    response = this.recursEval(root);
+  }
+  else
+  {
+    response = "ERROR IN SRAI DEPTH " + this.sraiCount;
+  }
+  this.sraiCount = this.sraiCount - 1;
+  return response.trim();
+
+}
+
 AIMLProcessor.prototype.recursEval = function (node)
 {
   if (node.nodeName == "#text") { return node.nodeValue }
@@ -247,6 +311,11 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "bot") { return this.botNode( node ) }
   else if (node.nodeName == "interval") { return this.interval(node) }
   else if (node.nodeName == "date") { return this.date(node) }
+  else if (node.nodeName == "srai") { return this.srai(node) }
+  else if (node.nodeName == "sr") { return this.srai(DOMParser.parseFromString("<srai>"+this.inputStars[0]+"</srai>").childNodes[0]) }
+  else if (node.nodeName == "set") { return this.set(node) }
+  else if (node.nodeName == "get") { return this.get(node) }
+  else if (node.nodeName == "think") { this.evalTagContent(node); return ""; }
   else { return DOMPrinter.serializeToString(node) }
 }
 
