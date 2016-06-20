@@ -28,7 +28,11 @@ askAlice("What is cheez whiz made from?");
 
 askAlice("Would you rather fish for salmon or sleep in?");
 
-askAlice("Alice 2.0, Name a beach");
+askAlice("Alice 2.0, Name something you find at a beach");
+
+askAlice("what is the capital of arkansas?");
+
+askAlice("what is the capital of Canada?");
 
 } else {
   setTimeout(runTest, 1000);

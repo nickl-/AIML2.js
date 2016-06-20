@@ -90,10 +90,6 @@ Bot.prototype.addSets = function()
           // console.log("Adding set: "+match[1]+" = " + setlist);
         setlist.maxLength = maxlength;
         sets.set(match[1], setlist);
-        if (match[1] == "color")
-        {
-          console.log("color set = ", setlist);
-        }
         count = count + 1;
       } else {
         console.log("Adding sets: failed to match ", files[i])
@@ -129,7 +125,7 @@ Bot.prototype.addMaps = function()
           var pair = maplist[j].split(/:/);
           if (pair[0])
           {
-            mapmap.set(pair[0], preproc.normalize(pair[1]).trim().toUpperCase())
+            mapmap.set(pair[0].trim().toUpperCase(), pair[1])
           }
         }
         // console.log("Adding map: "+match[1]+" = " + mapmap);
@@ -215,7 +211,7 @@ Bot.prototype.respond = function (input, callback) {
         matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()), "*", "*");
         if (matchedNode)
         {
-          console.log(DOMPrinter.serializeToString(matchedNode.category.pattern)+matchedNode.category.file);
+          // console.log(DOMPrinter.serializeToString(matchedNode.category.pattern)+matchedNode.category.file);
           var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, this.sessions[0], this);
           response = response
             + ap.evalTemplate();

@@ -202,6 +202,25 @@ AIMLProcessor.prototype.get = function (node)
   return result;
 }
 
+AIMLProcessor.prototype.map = function(node)
+{
+  var mapName = this.getAttributeOrTagValue(node, "name");
+  var contents = this.evalTagContent(node, ["name"]).trim();
+  if (!mapName)
+  {
+    result = "<map>"+contents+"</map>";
+  }
+  else
+  {
+    map = this.bot.maps.get(mapName);
+    if (map)
+    {
+      result = map.get(contents.toUpperCase()).trim();
+    }
+  }
+  return result;
+}
+
 AIMLProcessor.prototype.random = function(node)
 {
   var liList = [];
@@ -242,6 +261,47 @@ AIMLProcessor.prototype.botNode = function (node)
 {
   var prop = this.getAttributeOrTagValue(node, "name");
   return this.bot.properties.get(prop).trim();
+}
+
+AIMLProcessor.prototype.normalize = function (node)
+{
+  var result = this.evalTagContent(node);
+  return this.bot.preProcessor.normalize(result);
+}
+
+AIMLProcessor.prototype.denormalize = function (node)
+{
+  var result = this.evalTagContent(node);
+  return this.bot.preProcessor.denormalize(result);
+}
+
+AIMLProcessor.prototype.explode = function (node)
+{
+  var result = this.evalTagContent(node);
+  return result.trim().split(/\s*/).join(' ');
+}
+
+AIMLProcessor.prototype.uppercase = function (node)
+{
+  var result = this.evalTagContent(node);
+  return result.trim().toUpperCase();
+}
+
+AIMLProcessor.prototype.lowercase = function (node)
+{
+  var result = this.evalTagContent(node);
+  return result.trim().toLowerCase();
+}
+
+AIMLProcessor.prototype.formal = function(node)
+{
+  var result = this.evalTagContent(node).trim().split(/\s+/);
+  var response = '';
+  for (var i = 0; i < result.length; i++) {
+    response = response + result[i].charAt(0).toUpperCase()
+      + result[i].substring(1) + ' ';
+  }
+  return response;
 }
 
 AIMLProcessor.prototype.date = function(node) {
@@ -285,7 +345,7 @@ AIMLProcessor.prototype.srai = function(node)
   var matchedNode = this.bot.root.match(result, "*", "*");
   if (matchedNode)
   {
-    console.log("srai evaluating " + matchedNode.category.pattern + ", " + matchedNode.category.file);
+    // console.log("srai evaluating " + matchedNode.category.pattern + ", " + matchedNode.category.file);
     var template = "<template>"+matchedNode.category.template+"</template>";
     var root = DOMParser.parseFromString(template).childNodes[0];
     response = this.recursEval(root);
@@ -314,8 +374,15 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "srai") { return this.srai(node) }
   else if (node.nodeName == "sr") { return this.srai(DOMParser.parseFromString("<srai>"+this.inputStars[0]+"</srai>").childNodes[0]) }
   else if (node.nodeName == "set") { return this.set(node) }
+  else if (node.nodeName == "map") { return this.map(node) }
   else if (node.nodeName == "get") { return this.get(node) }
   else if (node.nodeName == "think") { this.evalTagContent(node); return ""; }
+  else if (node.nodeName == "normalize") { return this.normalize(node) }
+  else if (node.nodeName == "denormalize") { return this.denormalize(node) }
+  else if (node.nodeName == "explode") { return this.explode(node) }
+  else if (node.nodeName == "formal") { return this.formal(node) }
+  else if (node.nodeName == "uppercase") { return this.uppercase(node) }
+  else if (node.nodeName == "lowercase") { return this.lowercase(node) }
   else { return DOMPrinter.serializeToString(node) }
 }
 
