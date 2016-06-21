@@ -304,6 +304,81 @@ AIMLProcessor.prototype.formal = function(node)
   return response;
 }
 
+AIMLProcessor.prototype.loopCondition = function(node)
+{
+  var loop = true,
+    result = "", loopCnt = 0;
+    while (loop && loopCnt < 99) // need MagicNumbers support
+    {
+      loopCnt = loopCnt + 1;
+      loopResult = this.condition(node);
+      // missing check for too many SRAISs
+      if (loopResult.indexOf("<loop/>") > -1) {
+        loopResult = loopResult.replace("<loop/>", "");
+        loop = true;
+      }
+      else
+      {
+        loop = false;
+      }
+      result = result + loopResult;
+    }
+    if (loopCnt >= 99)
+      throw new Error("loop many loops in condition");
+    return result;
+}
+
+AIMLProcessor.prototype.condition = function(node)
+{
+  var childList = node.childNodes;
+  var lilist = [];
+  var ignoreAttrs = ["name", "var", "value"];
+  var predicate = this.getAttributeOrTagValue(node, "name");
+  var varName   = this.getAttributeOrTagValue(node, "var");
+  var value     = this.getAttributeOrTagValue(node, "value");
+  for (var i = 0; i < childList.length; i = i+1)
+  {
+    if (childList[i].nodeName == "li") { lilist.push(childList[i]) }
+  }
+  if ( (lilist.length) == 0 && value && varName &&
+    (this.vars.get(varName).toLowerCase() == value.toLowerCase()) )
+  {
+    return this.evalTagContent(node, ignoreAttrs);
+  }
+  else
+  {
+    for (var i = 0; i < lilist.length; i++)
+    {
+      var n = lilist[i];
+      if (!predicate) { var liPred = this.getAttributeOrTagValue(n, "name") }
+      if (!varName) { var liVar = this.getAttributeOrTagValue(n, "var") }
+      value = this.getAttributeOrTagValue(n, "value");
+      if (!value)
+      {
+        if (liPred && value && (
+          (this.session.predicates.get(liPred).toLowerCase() == value.toLowerCase())
+          || (this.session.predicates.has(liPred) && (value == "*") )))
+        {
+          return this.evalTagContent(n, ignoreAttrs);
+        }
+        else if (liVar && value && (
+          (this.vars.get(liVar).toLowerCase() == value.toLowerCase())
+          || (this.vars.has(liVar) && (value == "*") )))
+        {
+          return this.evalTagContent(n, ignoreAttrs);
+        }
+      }
+      else
+      {
+        // if we made it here, we must be at the terminal
+        // li, so we return it as the default
+        return this.evalTagContent(n, ignoreAttrs);
+      }
+    }
+  }
+  return "";
+}
+
 AIMLProcessor.prototype.date = function(node) {
   var format   = this.getAttributeOrTagValue(node, "format");
   var locale   = this.getAttributeOrTagValue(node, "locale");
@@ -383,6 +458,7 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "formal") { return this.formal(node) }
   else if (node.nodeName == "uppercase") { return this.uppercase(node) }
   else if (node.nodeName == "lowercase") { return this.lowercase(node) }
+  else if (node.nodeName == "condition") { return this.loopCondition(node) }
   else { return DOMPrinter.serializeToString(node) }
 }
 
