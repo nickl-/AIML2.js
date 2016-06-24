@@ -96,4 +96,13 @@ function substitute(sentence, patterns, subs) {
 PreProcessor.prototype.normalize = function (sentence) {
   return substitute(sentence, this.normalPatterns, this.normalSubs);
 }
+
+PreProcessor.prototype.person = function (sentence) {
+  return substitute(sentence, this.personPatterns, this.personSubs);
+}
+
+PreProcessor.prototype.person2 = function (sentence) {
+  return substitute(sentence, this.person2Patterns, this.person2Subs);
+}
+
 module.exports = PreProcessor;

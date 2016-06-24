@@ -148,6 +148,7 @@ AIMLProcessor.prototype.getAttributeOrTagValue = function (node, attrName)
       return this.evalTagContent( n )
     }
   }
+  return null;
 }
 
 AIMLProcessor.prototype.evalTagContent = function(node, ignoreAttributes)
@@ -238,23 +239,77 @@ AIMLProcessor.prototype.random = function(node)
 
 AIMLProcessor.prototype.inputStar = function(node)
 {
-  var index = this.getAttributeOrTagValue(node, "index") - 1;
+  var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
   if (!index) { index = 0; }
   return this.inputStars[index];
 }
 
 AIMLProcessor.prototype.thatStar = function(node)
 {
-  var index = this.getAttributeOrTagValue(node, "index") - 1;
+  var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
   if (!index) { index = 0; }
   return this.thatStars[index];
 }
 
 AIMLProcessor.prototype.topicStar = function(node)
 {
-  var index = this.getAttributeOrTagValue(node, "index") - 1;
+  var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
   if (!index) { index = 0; }
+  console.log("getting " + index + "th topic star. TopicStars = ", this.topicStars);
   return this.topicStars[index];
+}
+
+AIMLProcessor.prototype.that = function(node)
+{
+  var indices = this.getAttributeOrTagValue(node, "index");
+  if (!indices) { indices = [0,0] }
+  else
+  {
+    var tmp = indices.split(/,/); // indices should be two comma-separated integers
+    indices = [parseInt(tmp[0])-1, parseInt(tmp[1])-1];
+  }
+  return (this.session.thatHistory[indices[0]] || ['*'])[indices[1]];
+}
+
+AIMLProcessor.prototype.input = function (node) {
+  var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
+  return this.session.inputHistory[index];
+};
+
+AIMLProcessor.prototype.request = function (node) {
+  var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
+  return this.session.requestHistory[index];
+};
+
+AIMLProcessor.prototype.response = function (node) {
+  var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
+  return this.session.responseHistory[index];
+};
+
+AIMLProcessor.prototype.person = function (node)
+{
+  if (node.hasChildNodes())
+  {
+    result = this.evalTagContent(node);
+  }
+  else
+  {
+    result = this.inputStars[0];
+  }
+  return this.bot.preProcessor.person(result).trim();
+}
+
+AIMLProcessor.prototype.person2 = function (node)
+{
+  if (node.hasChildNodes())
+  {
+    result = this.evalTagContent(node);
+  }
+  else
+  {
+    result = this.inputStars[0];
+  }
+  return this.bot.preProcessor.person2(result).trim();
 }
 
 AIMLProcessor.prototype.botNode = function (node)
@@ -414,10 +469,11 @@ AIMLProcessor.prototype.srai = function(node)
 {
   this.sraiCount = this.sraiCount + 1;
   if (this.sraiCount > 10) { return "Too much recursion!" }
+  // console.log("srai redirecting with " + this.evalTagContent( node ).trim().replace(/[\r\n]/g));
   var result = this.bot.preProcessor.normalize(this.evalTagContent( node ).trim().replace(/[\r\n]/g));
   // need to implement topics by way of variables and predicates
   // once that's done, need to check for new topic here
-  var matchedNode = this.bot.root.match(result, "*", "*");
+  var matchedNode = this.bot.root.match(result, "*", this.session.predicates.get('topic') || "*");
   if (matchedNode)
   {
     // console.log("srai evaluating " + matchedNode.category.pattern + ", " + matchedNode.category.file);
@@ -441,8 +497,14 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "template") { return this.evalTagContent( node ) }
   else if (node.nodeName == "random" ) { return this.random( node ) }
   else if (node.nodeName == "star") { return this.inputStar( node ) }
-  else if (node.nodeName == "thatstar") { return this.inputStar( node ) }
-  else if (node.nodeName == "topicstar") { return this.inputStar( node ) }
+  else if (node.nodeName == "thatstar") { return this.thatStar( node ) }
+  else if (node.nodeName == "topicstar") { return this.topicStar( node ) }
+  else if (node.nodeName == "that") { return this.that( node ) }
+  else if (node.nodeName == "input") { return this.input( node ) }
+  else if (node.nodeName == "request") { return this.request( node ) }
+  else if (node.nodeName == "response") { return this.response( node ) }
+  else if (node.nodeName == "person") { return this.person(node) }
+  else if (node.nodeName == "person2") { return this.person2(node) }
   else if (node.nodeName == "bot") { return this.botNode( node ) }
   else if (node.nodeName == "interval") { return this.interval(node) }
   else if (node.nodeName == "date") { return this.date(node) }

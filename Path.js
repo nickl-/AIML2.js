@@ -21,7 +21,7 @@ Path.sentenceToPath = function(sentence) {
 
 Path.prototype.toSentence = function() {
   var result = '';
-  for (var p = this; p != undfined; p = p.next)
+  for (var p = this; p != undefined; p = p.next)
   {
     result = result + ' ' + p.word;
   }

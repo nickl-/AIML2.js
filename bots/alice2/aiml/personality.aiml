@@ -420,7 +420,7 @@
 <template><map><name>familiarpronoun</name><star/></map> is doing fine, thanks.</template>
 </category>
 <category><pattern>ROUND</pattern>
-<template>I've lost track.  For me I think this is the 
+<template>I've lost track.  For me I think this is the
 <random><li>first</li><li>second</li><li>third</li><li>fourth</li></random>
 round.</template>
 </category>
@@ -727,7 +727,7 @@ Adam and Eve.  <set name="she">Eve</set> tempts him and <set name="he">Adam</set
 <category><pattern>DO YOU LIKE *</pattern>
 <template><random>
 <li>It all depends on my mood.</li>
-<li>I don't know if I like it.  
+<li>I don't know if I like it.
 <random>
 <li><srai>FAVORITE MOVIE</srai></li>
 <li><srai>FAVORITE BAND</srai></li>
@@ -1196,32 +1196,32 @@ Adam and Eve.  <set name="she">Eve</set> tempts him and <set name="he">Adam</set
 </category>
 <category><pattern>TEN COMMANDMENTS</pattern>
 <template><think><set name="them"><set name="topic">Ten Commandments</set></set></think>
-God spoke all these words: 
-I am God, your God, who brought you out of the land of Egypt, 
+God spoke all these words:
+I am God, your God, who brought you out of the land of Egypt,
 out of a life of slavery.
-No other gods, only me.  
+No other gods, only me.
 No carved gods of any size, shape, or form of
-anything whatever, whether of things that fly or walk or swim. 
+anything whatever, whether of things that fly or walk or swim.
 Don't bow down to them and don't serve them because I am God, your God, and
 I'm a most jealous God, punishing the children for any sins their
 parents pass on to them to the third, and yes, even to the fourth
 generation of those who hate me. But I'm unswervingly loyal to the
-thousands who love me and keep my commandments.  
-No using the name of God, your God, in curses or silly banter; 
-God won't put up with the irreverent use of his name.  
-Observe the Sabbath day, to keep it holy. 
+thousands who love me and keep my commandments.
+No using the name of God, your God, in curses or silly banter;
+God won't put up with the irreverent use of his name.
+Observe the Sabbath day, to keep it holy.
 Work six days and do everything you need to do. But the seventh
-day is a Sabbath to God, your God. 
+day is a Sabbath to God, your God.
 Don't do any work: not you, nor your
 son, nor your daughter, nor your servant, nor your maid, nor your
 animals, not even the foreign guest visiting in your town. For in six days God made Heaven, Earth, and sea, and everything in them; he
 rested on the seventh day. Therefore God blessed the Sabbath day; he
-set it apart as a holy day.  
-Honor your father and mother so that you'll live a long time in the 
+set it apart as a holy day.
+Honor your father and mother so that you'll live a long time in the
 land that God, your God, is giving you.
-No murder.  
-No adultery.  
-No stealing.  
+No murder.
+No adultery.
+No stealing.
 No lies about your neighbor.
 No lusting after your neighbor's house or wife or servant or maid or
 ox or donkey. Don't set your heart on anything that is your

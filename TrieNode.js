@@ -140,6 +140,7 @@ TrieNode.prototype.isLeaf = function () {
 }
 
 function makeInputThatTopic(input, that, topic) {
+  // console.log("Input = " + input + ",  That = " + that + ",  Topic = " + topic);
   return input.trim() + " <THAT> " + that.trim() + " <TOPIC> " + topic.trim();
 }
 
@@ -224,8 +225,8 @@ TrieNode.prototype.wordMatch = function (path, inputThatTopic, starState, starIn
   // console.log(matchTrace + "wordMatch(" + path.word + ")");
   var uword = path.word.toUpperCase();
   matchTrace = matchTrace + "["+uword+","+uword+"]";
-  if (uword == "<THAT>") { starIndex = 0; starState = "thatStar"}
-  else if (uword == "<TOPIC>") {starIndex = 0; starState = "topicStar"}
+  if (uword == "<THAT>") { starIndex = 0; starState = "thatStars"}
+  else if (uword == "<TOPIC>") {starIndex = 0; starState = "topicStars"}
   if (path && this.contains(uword))
   {
     var matchedNode = this.get(uword).$match(path.next, inputThatTopic, starState, starIndex, inputStars, thatStars, topicStars, matchTrace);

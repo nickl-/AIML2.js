@@ -20,7 +20,7 @@ function Bot(name, path) {
   this.addSets();
   this.addMaps();
   this.root = new TrieNode(this);
-  this.sessions = [{predicates: new Map()}]; // placeholder for real session management
+  this.sessions = [{predicates: new Map(), thatHistory: [], inputHistory: [], requestHistory: [], responseHistory: []}]; // placeholder for real session management
   // console.log("this.root = "+this.root);
 }
 
@@ -196,31 +196,58 @@ Bot.prototype.respond = function (input, callback) {
   if (this.isAIMLFileLoadingFinished)
   {
     var response = '', matchedNode;
+    var session = this.sessions[0];
 
     input = this.preProcessor.normalize(input);
     input = input.replace("。",".");
     input = input.replace("？","?");
     input = input.replace("！","!");
 
+    session.requestHistory.unshift(input); // there's some irony in the variable name choices here.
+    var thatContext = [];
     for (sentence of input.split(/[\.\?!]/))
     {
       sentence = sentence.trim();
       if (sentence.length > 0)
       {
         // console.log("Searching for sentence " + sentence);
-        matchedNode = this.root.match(this.preProcessor.normalize(sentence.trim()), "*", "*");
+        var that  = (session.thatHistory[0] || ['*'])[0];
+        var topic = session.predicates.get("topic") || "*";
+        session.inputHistory.unshift(sentence.trim())
+        matchedNode = this.root.match(sentence.trim(), that, topic);
         if (matchedNode)
         {
           // console.log(DOMPrinter.serializeToString(matchedNode.category.pattern)+matchedNode.category.file);
-          var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, this.sessions[0], this);
+          var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, session, this);
+          var currentResponse = ap.evalTemplate();
           response = response
-            + ap.evalTemplate();
+            + currentResponse;
+          for(var responseSentence of this.preProcessor.normalize(currentResponse).split(/[\.\?!]/))
+          {
+            responseSentence = responseSentence.trim();
+            if (responseSentence.length > 0)
+            {
+              // console.log("Adding " + responseSentence + " to context hisory.");
+              thatContext.unshift(responseSentence);
+            }
+          }
         }
         else
         {
           response = response + " ERROR "
         }
       }
+    }
+    response = response.trim();
+    if (response.length > 0)
+    {
+      // console.log("Adding "+response+" to response history");
+      session.responseHistory.unshift(response);
+    }
+    if (thatContext.length > 0)
+    {
+      // console.log("Adding "+thatContext+" to that history");
+      session.thatHistory.unshift(thatContext);
     }
     callback(response);
   }
