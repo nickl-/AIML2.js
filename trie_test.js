@@ -2,8 +2,11 @@ var TrieNode = require('./TrieNode');
 var Path = require('./Path');
 var AIMLProcessor = require('./AIMLProcessor');
 var Bot = require('./Bot');
+var Session = require('./ChatSession');
 
 var bot = new Bot('alice2', './');
+var session = new Session();
+
 // bot.setMap = new Map();
 tmpSet = ["FISH", "MATTER", "SLEEP", "LOVE"];
 tmpSet.maxLength = 1;
@@ -17,7 +20,7 @@ setTimeout( function runTest() {
 
 function askAlice(req) {
   console.log(">> "+ req);
-  bot.respond(req, console.log);
+  bot.respond(req, session, console.log);
 }
 
 askAlice("You are lazy.");
@@ -48,5 +51,5 @@ const rl = readline.createInterface({
 });
 
 rl.on('line', (line) => {
-  bot.respond(line, console.log);
+  bot.respond(line, session, console.log);
 });

@@ -20,7 +20,6 @@ function Bot(name, path) {
   this.addSets();
   this.addMaps();
   this.root = new TrieNode(this);
-  this.sessions = [{predicates: new Map(), thatHistory: [], inputHistory: [], requestHistory: [], responseHistory: []}]; // placeholder for real session management
   // console.log("this.root = "+this.root);
 }
 
@@ -192,11 +191,10 @@ Bot.prototype.loadAIMLFiles = function () {
 
 }
 
-Bot.prototype.respond = function (input, callback) {
+Bot.prototype.respond = function (input, session, callback) {
   if (this.isAIMLFileLoadingFinished)
   {
     var response = '', matchedNode;
-    var session = this.sessions[0];
 
     input = this.preProcessor.normalize(input);
     input = input.replace("。",".");
