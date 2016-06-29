@@ -10,8 +10,6 @@ EventEmitter = require('eventemitter').EventEmitter;
 var AIMLProcessor = require('./AIMLProcessor');
 var PreProcessor = require('./PreProcessor');
 
-var ee = new EventEmitter();
-
 function Bot(name, path) {
   this.name = name;
   this.setAllPaths(path, name);
@@ -20,6 +18,7 @@ function Bot(name, path) {
   this.addSets();
   this.addMaps();
   this.root = new TrieNode(this);
+  this.ee = new EventEmitter();
   // console.log("this.root = "+this.root);
 }
 
@@ -182,6 +181,7 @@ Bot.prototype.loadAIMLFiles = function () {
       else
       {
         this.isAIMLFileLoadingFinished = true;
+        this.ee.emit('AIML FILES LOADED');
       }
     }
 
