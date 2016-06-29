@@ -1,63 +1,28 @@
-AIML.js
+AIML2.js
 =======
 
-AIML Interpreter written in node.js<br/>
+AIML 2.0 Interpreter written in node.js<br/>
 <br/>
 AIMLInterpreter is a module that allows you to parse AIML files and to find the correct answer to a given message.<br/>
 
-<b>Installation</b>
-<pre>$ npm install aimlinterpreter</pre>
-<br/>
 <b>Dependencies</b><pre>
-fs
-dom-js</pre>
+xmldom
+eventemitter
+readline
+strftime</pre>
 <br/>
 <b>Description</b><br/>
-With <i>new AIMLInterpreter(botAttributes)</i> one can create a new interpreter object. <i>botAttributes</i> is an JSON-Object that 
-can contain attributes of the bot one wants to use in AIML files, e.g. ({name: "Bot", age:"42"}).<br/>
-This object has a function called <i>loadAIMLFilesIntoArray(fileArray)</i> which receives an array of AIML files. 
-This function loads the AIML file into memory.<br/>
-Furthermore, the object has a function called <i>findAnswerInLoadedAIMLFiles(clientInput, cb)</i> which receives 
-a message and a callback. The callback is called when an answer was found. 
-The callback of <i>findAnswerInLoadedAIMLFiles</i> should look like this: <i>callback(result, wildCardArray, input)</i>.
-<i>Result</i> is the answer from the AIML file and <i>wildCardArray</i> stores the values of all wildcardInputs passed previously from the client. The original input which triggered the answer is given back via <i>input</i>.	
-<br/><br/>
-<b>Example:</b><br/>
-<pre><code>
-AIMLInterpreter = require('./AIMLInterpreter');
-var aimlInterpreter = new AIMLInterpreter({name:'WireInterpreter', age:'42'});
-aimlInterpreter.loadAIMLFilesIntoArray(['./test.aiml.xml']);
+Although this is a fork of [aimlinterpreter](https://github.com/raethlein/AIML.js) almost none of that code has been retained. The new code is mostly based on the reference implementation for AIML2.0, (Program AB)[https://code.google.com/archive/p/program-ab/], which was written in Java. AIML2 is not a direct copy as many of the structures that exist in Java do not in node.js and vice versa. Additionally, where structural changes make the code more efficient, or, more importantly, easier to understand, I have attempted to do so.
 
-var callback = function(answer, wildCardArray, input){
-    console.log(answer + ' | ' + wildCardArray + ' | ' + input);
-};
+It's a large project so I expect there will be many changes along the way. Additionally, AIML 2.0 is still only a draft specification, so changes may be made there. As far as I know, this should be backward compatible with AIML 1.* files, bt I have not done any testing of that yet.
 
-aimlInterpreter.findAnswerInLoadedAIMLFiles('What is your name?', callback);
-aimlInterpreter.findAnswerInLoadedAIMLFiles('My name is Ben.', callback);
-aimlInterpreter.findAnswerInLoadedAIMLFiles('What is my name?', callback);
-</code></pre><br/>
-<b>Supported AIML tags:</b><pre>
-&lt;bot name="<i>NAME</i>"/>
-&lt;get name="<i>NAME</i>"/>
-&lt;set name="<i>NAME</i>">TEXT&lt;/set>
-&lt;random>&lt;li><i>A</i>&lt;/li>&lt;li><i>B</i>&lt;/li>&lt;li><i>C</i>&lt;/li>&lt;/random>
-&lt;srai><i>PATTERN TEXT</i>&lt;/srai>
-&lt;sr/>
-&lt;star/>
-&lt;that><i>TEXT</i>&lt;/that>
-&lt;condition name="<i>NAME</i>" value="<i>VALUE</i>"><i>TEXT</i>&lt;/condition>
-&lt;condition>&lt;li name="<i>NAME</i>" value="<i>VALUE</i>"><i>TEXT</i>&lt;/li>&lt;li name="<i>NAME</i>" value="<i>VALUE</i>"><i>TEXT</i>&lt;/li>&lt;li><i>TEXT</i>&lt;/li>&lt;/condition>
-&lt;condition name="<i>NAME</i>">&lt;li value="<i>VALUE</i>"><i>TEXT</i>&lt;/li>&lt;li value="<i>VALUE</i>"><i>TEXT</i>&lt;/li>&lt;li><i>TEXT</i>&lt;/li>&lt;/condition>
+If you're interested in contributing or are looking for support, find me on (twitter)[https://twitter.com/TerribleNews].
 
-&lt;think>&lt;set name="<i>NAME</i>">TEXT&lt;/set>&lt;/think>
-&lt;anyElement/>&lt;random>&lt;li><i>A</i>&lt;/li>&lt;li><i>B</i>&lt;/li>&lt;li><i>C</i>&lt;/li>&lt;/random>&lt;anyElement/>
-&lt;random>&lt;li>&lt;think>&lt;set name="<i>NAME</i>">TEXT&lt;/set>&lt;/think>&lt;/li>&lt;li><i>B</i>&lt;/li>&lt;/random>
-&lt;random>&lt;li>&lt;srai><i>PATTERN TEXT</i>&lt;/srai>&lt;/li>&lt;li><i>B</i>&lt;/li>&lt;/random>
-&lt;condition name="<i>NAME</i>" value="<i>VALUE</i>">&lt;srai><i>PATTERN TEXT</i>&lt;/srai>&lt;/condition>
-&lt;condition>&lt;li name="<i>NAME</i>" value="<i>VALUE</i>">&lt;srai><i>PATTERN TEXT</i>&lt;/srai>&lt;/li>&lt;li name="<i>NAME</i>" value="<i>VALUE</i>"><i>TEXT</i>&lt;/li>&lt;/condition>
-&lt;condition name="<i>NAME</i>">&lt;li value="<i>VALUE</i>">&lt;srai><i>PATTERN TEXT</i>&lt;/srai>&lt;/li>&lt;li value="<i>VALUE</i>"><i>TEXT</i>&lt;/li>&lt;/condition>
-</pre>
+Usage
+=========
 
-<br/>
-<b>Contributors</b><br/>
-Special thanks go to Sergio Rodriguez (https://github.com/sergiorodez), who contributed to the interpreter and enhanced its functionalities
+Currently, you can test it out by simply running
+<code>
+>> node ChatServer.js
+</code>
+which will fire up the default alice2 bot with an interactive console session.
