@@ -359,6 +359,68 @@ AIMLProcessor.prototype.formal = function(node)
   return response;
 }
 
+AIMLProcessor.prototype.recurseLearn = function (node)
+{
+  if (node.nodeName == "#text") { return node.nodeValue }
+  else if (node.nodeName == "eval") { return this.evalTagContent( node ) }
+  else
+  {
+    var result = "";
+    for (var i = 0; i < node.childNodes.length; i++)
+    {
+      result = result + this.recurseLearn(node.childNodes[i]);
+    }
+    var attrString = "";
+    if (node.hasAttributes())
+    {
+      for (i = 0; i < node.attributes.length; i++)
+      {
+        attrString = attrString + " " + node.attributes[i].name + "=\"" + node.attributes[i].value + "\"";
+      }
+    }
+    return "<" + node.nodeName + attrString + ">" + result + "</" + node.nodeName + ">";
+  }
+}
+
+AIMLProcessor.prototype.learn = function(node)
+{
+  var children = node.childNodes;
+  for (var i = 0; i < children.length; i++)
+  {
+    var child = children[i];
+    if (child.nodeName == "category")
+    {
+      console.log("Processing learn category" + DOMPrinter.serializeToString(child));
+      var c = {depth: 0, pattern: '*', topic: "*", that: '*', template: '', file: "learn"};
+      var grandkids = child.childNodes;
+      var pattern = "", that = "<that>*</that>", template = "";
+      for (var j = 0; j < grandkids.length; j++)
+      {
+        var grandchild = grandkids[j];
+        if (grandchild.nodeName == "pattern")
+        {
+          pattern = this.recurseLearn(grandchild);
+        }
+        else if (grandchild.nodeName == "that")
+        {
+          that = this.recurseLearn(grandchild);
+        }
+        else if (grandchild.nodeName == "template")
+        {
+          template = this.recurseLearn(grandchild);
+        }
+      }
+      pattern = AIMLProcessor.trimTag(pattern, "pattern").toUpperCase();
+      c.pattern = pattern.replace(/[\n\s]/g, ' ');
+      that = AIMLProcessor.trimTag(that, "that").toUpperCase();
+      c.that = that.replace(/[\n\s]g/, ' ');
+      c.template = AIMLProcessor.trimTag(template, "template");
+
+      this.bot.addCategory(c);
+    }
+  }
+}
+
 AIMLProcessor.prototype.loopCondition = function(node)
 {
   var loop = true,
@@ -521,6 +583,7 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "uppercase") { return this.uppercase(node) }
   else if (node.nodeName == "lowercase") { return this.lowercase(node) }
   else if (node.nodeName == "condition") { return this.loopCondition(node) }
+  else if (node.nodeName == "learn") { return this.learn(node) }
   else { return DOMPrinter.serializeToString(node) }
 }
 

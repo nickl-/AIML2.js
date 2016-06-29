@@ -155,6 +155,12 @@ Bot.prototype.replaceBotProperties = function(pattern)
   return pattern;
 }
 
+Bot.prototype.addCategory = function (c)
+{
+  var p = Path.sentenceToPath(this.replaceBotProperties(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic));
+  this.root.addPath(p, c);
+}
+
 Bot.prototype.loadAIMLFiles = function () {
   this.isAIMLFileLoadingStarted = true;
 
@@ -166,8 +172,7 @@ Bot.prototype.loadAIMLFiles = function () {
       console.log("Loaded ", categories.length, " categories.");
       for (var c of categories)
       {
-        p = Path.sentenceToPath(this.replaceBotProperties(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic));
-        this.root.addPath(p, c);
+        this.addCategory(c);
       }
       return loadAIMLFile.call(this, files.shift());
     }
