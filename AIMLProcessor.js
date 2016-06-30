@@ -2,6 +2,7 @@ var xmldom = require('xmldom');
 var DOMParser = new xmldom.DOMParser();
 var DOMPrinter = new xmldom.XMLSerializer();
 var fs = require('fs');
+var Config = require('./Config');
 
 function AIMLProcessor(template, inputStars, thatStars, topicStars, session, bot) {
   this.template = template;
@@ -447,7 +448,7 @@ AIMLProcessor.prototype.loopCondition = function(node)
       }
       result = result + loopResult;
     }
-    if (loopCnt >= 99)
+    if (loopCnt >= Config.MAX_LOOP_COUNT)
       throw new Error("loop many loops in condition");
     return result;
 }
@@ -537,7 +538,7 @@ AIMLProcessor.prototype.interval = function(node) {
 AIMLProcessor.prototype.srai = function(node)
 {
   this.sraiCount = this.sraiCount + 1;
-  if (this.sraiCount > 10) { return "Too much recursion!" }
+  if (this.sraiCount > Config.MAX_SRAI_DEPTH) { return "Too much recursion!" }
   // console.log("srai redirecting with " + this.evalTagContent( node ).trim().replace(/[\r\n]/g));
   var result = this.bot.preProcessor.normalize(this.evalTagContent( node ).trim().replace(/[\r\n]/g));
   // need to implement topics by way of variables and predicates
