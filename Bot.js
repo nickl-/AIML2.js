@@ -200,6 +200,7 @@ Bot.prototype.respond = function (input, session, callback) {
   if (this.isAIMLFileLoadingFinished)
   {
     var response = '', matchedNode;
+    // console.log("Responding to reqest from session "+session.id);
 
     input = this.preProcessor.normalize(input);
     input = input.replace("。",".");
@@ -220,18 +221,34 @@ Bot.prototype.respond = function (input, session, callback) {
         matchedNode = this.root.match(sentence.trim(), that, topic);
         if (matchedNode)
         {
-          // console.log(DOMPrinter.serializeToString(matchedNode.category.pattern)+matchedNode.category.file);
-          var ap = new AIMLProcessor(matchedNode.category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, session, this);
-          var currentResponse = ap.evalTemplate();
-          response = response
-            + currentResponse;
-          for(var responseSentence of this.preProcessor.normalize(currentResponse).split(/[\.\?!]/))
+          if (Array.isArray(matchedNode.category))
           {
-            responseSentence = responseSentence.trim();
-            if (responseSentence.length > 0)
+            var categories = matchedNode.category;
+          }
+          else
+          {
+            var categories = [matchedNode.category];
+          }
+          // console.log(DOMPrinter.serializeToString(matchedNode.category.pattern)+matchedNode.category.file);
+          for (category of categories)
+          {
+            // console.log("Found category: " + DOMPrinter.serializeToString(category.pattern)+category.file);
+            // console.log("category.session_id = " + category.session_id);
+            if (!category.session_id || category.session_id == session.id)
             {
-              // console.log("Adding " + responseSentence + " to context hisory.");
-              thatContext.unshift(responseSentence);
+              var ap = new AIMLProcessor(category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, session, this);
+              var currentResponse = ap.evalTemplate();
+              response = response + " "
+              + currentResponse;
+              for(var responseSentence of this.preProcessor.normalize(currentResponse).split(/[\.\?!]/))
+              {
+                responseSentence = responseSentence.trim();
+                if (responseSentence.length > 0)
+                {
+                  // console.log("Adding " + responseSentence + " to context hisory.");
+                  thatContext.unshift(responseSentence);
+                }
+              }
             }
           }
         }

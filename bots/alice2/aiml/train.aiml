@@ -950,6 +950,12 @@ For fun?</template>
 <set><name><get name="pronoun"/></name><star/></set>
 </think></template>
 </category>
+<category><pattern>SETHESHE <set>name</set></pattern>
+<template><think>
+<set name="pronoun"><map><name>genderpronoun</name><map><name>gendername</name><star/></map></map></set>
+<set><name><get name="pronoun"/></name><star/></set>
+</think></template>
+</category>
 <category><pattern>* MEANS *</pattern>
 <template><srai>EQUATE <star/> TO <star index="2"/></srai></template>
 </category>
@@ -1326,7 +1332,7 @@ Ok, I will remember <get var="a1"/> <get var="thing1"/> are <get var="thing2"/>.
 <template><srai>LEARN NEW RESPONSE My <star/></srai></template>
 </category>
 <category><pattern>LEARN NEW RESPONSE *</pattern>
-<template>OK.  Now whenever you say "<get name="newpattern"/>", I will respond with 
+<template>OK.  Now whenever you say "<get name="newpattern"/>", I will respond with
 "<star/>".
 <learn>
 <category>
@@ -1387,7 +1393,7 @@ What should I say instead?</template>
 </category>
 <category><pattern><set>familiarname</set> <set>is</set> *</pattern>
 <template><think>
-<set name="learnpattern">Who <star index="2"/> <person><star index="3"/></person></set>?  
+<set name="learnpattern">Who <star index="2"/> <person><star index="3"/></person></set>?
 <set name="learntemplate">Your <star/></set>.
 <learn>
 <category>
@@ -1398,7 +1404,7 @@ What should I say instead?</template>
 </think>
 Now you can ask me: "<get name="learnpattern"/>"?
 <think>
-<set name="learnpattern">What does my <star/> <map name="is2be"><star index="2"/></map></set>? 
+<set name="learnpattern">What does my <star/> <map name="is2be"><star index="2"/></map></set>?
 <set name="learntemplate"><person><star index="3"/></person></set>.
 <learn>
 <category>
@@ -1411,7 +1417,7 @@ and "<get name="learnpattern"/>"?</template>
 </category>
 <category><pattern>* <set>is</set> *</pattern>
 <template><think>
-<set name="learnpattern"><srai>QUESTIONWORD <star/></srai> <star index="2"/> <person><star index="3"/></person></set>?  
+<set name="learnpattern"><srai>QUESTIONWORD <star/></srai> <star index="2"/> <person><star index="3"/></person></set>?
 <set name="learntemplate"><star/></set>.
 <learn>
 <category>
@@ -1422,7 +1428,7 @@ and "<get name="learnpattern"/>"?</template>
 </think>
 Now you can ask me: "<get name="learnpattern"/>"?
 <think>
-<set name="learnpattern">What does <star/> <map name="is2be"><star index="2"/></map></set>? 
+<set name="learnpattern">What does <star/> <map name="is2be"><star index="2"/></map></set>?
 <set name="learntemplate"><person><star index="3"/></person></set>.
 <learn>
 <category>

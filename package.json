@@ -1,10 +1,10 @@
 {
   "READ ME": "README.md",
   "author": {
-    "name": "B3nRa"
+    "name": "terriblenews"
   },
   "bugs": {
-    "url": "https://github.com/raethlein/AIML.js/issues"
+    "url": "https://github.com/TerribleNews/AIML2.js/issues"
   },
   "dependencies": {
     "dom-js": "~0.0.9",
@@ -33,7 +33,7 @@
       "email": "terrible.news@gmail.com"
     }
   ],
-  "name": "aiml2interpreter",
+  "name": "@terriblenews/aiml2interpreter",
   "optionalDependencies": {},
   "repository": {
     "type": "git",

@@ -85,7 +85,15 @@ TrieNode.prototype.addSets = function (word, fileName) {
 TrieNode.prototype.addPath = function(path, category) {
   if (!path)
   {
-    this.category = category;
+    // Merge policy: save all categories. This will also help with
+    // dealin with the <learn> tag which isn't supposed to go across
+    // sessions.
+    if (Array.isArray(this.category))
+      this.category.push(category);
+    else if (this.category)
+      this.category = [this.category, category];
+    else
+      this.category = category;
     this.height = 0;
   }
   else if (this.contains(path.word))

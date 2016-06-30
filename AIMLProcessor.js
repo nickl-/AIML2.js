@@ -356,7 +356,7 @@ AIMLProcessor.prototype.formal = function(node)
     response = response + result[i].charAt(0).toUpperCase()
       + result[i].substring(1) + ' ';
   }
-  return response;
+  return response.trim();
 }
 
 AIMLProcessor.prototype.recurseLearn = function (node)
@@ -390,7 +390,7 @@ AIMLProcessor.prototype.learn = function(node)
     var child = children[i];
     if (child.nodeName == "category")
     {
-      console.log("Processing learn category" + DOMPrinter.serializeToString(child));
+      // console.log("Processing learn category" + DOMPrinter.serializeToString(child));
       var c = {depth: 0, pattern: '*', topic: "*", that: '*', template: '', file: "learn"};
       var grandkids = child.childNodes;
       var pattern = "", that = "<that>*</that>", template = "";
@@ -416,9 +416,16 @@ AIMLProcessor.prototype.learn = function(node)
       c.that = that.replace(/[\n\s]g/, ' ');
       c.template = AIMLProcessor.trimTag(template, "template");
 
+      if (node.nodeName == 'learn')
+      {
+        // console.log("Learning new category for session " + this.session.id);
+        c.session_id = this.session.id;
+      }
+
       this.bot.addCategory(c);
     }
   }
+  return "";
 }
 
 AIMLProcessor.prototype.loopCondition = function(node)

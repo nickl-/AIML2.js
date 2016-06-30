@@ -1,4 +1,5 @@
 function ChatSession() {
+  this.id = 'random';
   this.predicates = new Map();
   this.thatHistory = [];
   this.inputHistory= [];
