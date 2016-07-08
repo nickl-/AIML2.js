@@ -596,11 +596,13 @@ AIMLProcessor.prototype.recursEval = function (node)
 }
 
 AIMLProcessor.prototype.evalTemplate = function () {
-  var response = "";
-  var template = "<template>"+this.template+"</template>";
-  var root = DOMParser.parseFromString(template).childNodes[0];
-  response = this.recursEval(root);
-  return response;
+  return new Promise((function(resolve, reject) {
+    var response = "";
+    var template = "<template>"+this.template+"</template>";
+    var root = DOMParser.parseFromString(template).childNodes[0];
+    response = this.recursEval(root);
+    resolve(response);
+  }).bind(this))
 }
 
 // Static functions

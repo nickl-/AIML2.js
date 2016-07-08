@@ -199,7 +199,7 @@ Bot.prototype.loadAIMLFiles = function () {
 Bot.prototype.respond = function (input, session, callback) {
   if (this.isAIMLFileLoadingFinished)
   {
-    var response = '', matchedNode;
+    var response = '', matchedNode, responseHolder;
     // console.log("Responding to reqest from session "+session.id);
 
     input = this.preProcessor.normalize(input);
@@ -237,39 +237,77 @@ Bot.prototype.respond = function (input, session, callback) {
             if (!category.session_id || category.session_id == session.id)
             {
               var ap = new AIMLProcessor(category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, session, this);
-              var currentResponse = ap.evalTemplate();
-              response = response + " "
-              + currentResponse;
-              for(var responseSentence of this.preProcessor.normalize(currentResponse).split(/[\.\?!]/))
-              {
-                responseSentence = responseSentence.trim();
-                if (responseSentence.length > 0)
+              var addToContext = (nextResponse) => {
+                for(var responseSentence of this.preProcessor.normalize(nextResponse).split(/[\.\?!]/))
                 {
-                  // console.log("Adding " + responseSentence + " to context hisory.");
-                  thatContext.unshift(responseSentence);
+                  responseSentence = responseSentence.trim();
+                  if (responseSentence.length > 0)
+                  {
+                    // console.log("Adding " + responseSentence + " to context hisory.");
+                    thatContext.unshift(responseSentence);
+                  }
                 }
               }
+              if (!responseHolder) {
+                responseHolder = ap.evalTemplate().then(function (res){
+                  addToContext(res);
+                  return res;
+                });
+              }
+              else
+              {
+                responseHolder = responseHolder.then( (function resultChainer(tempProcessor) {
+                  return function(response) {
+                    return tempProcessor.evalTemplate().then(function (nextResponse){
+                      addToContext(nextResponse);
+                      return response + ' ' + nextResponse;
+                    })
+                  }
+                })(ap))
+              }
+              // var currentResponse = ap.evalTemplate();
+              // response = response + " "
+              // + currentResponse;
             }
           }
         }
         else
         {
-          response = response + " ERROR "
+          //response = response + " ERROR "
+          if (!responseHolder) {
+            responseHolder = new Promise(function(fullfill, reject) {
+              fullfill("ERROR");
+            })
+          }
+          else {
+            responseHolder = responseHolder.then(
+              function (res) {
+                return res + " ERROR";
+              }
+            )
+          }
         }
       }
     }
-    response = response.trim();
-    if (response.length > 0)
-    {
-      // console.log("Adding "+response+" to response history");
-      session.responseHistory.unshift(response);
-    }
-    if (thatContext.length > 0)
-    {
-      // console.log("Adding "+thatContext+" to that history");
-      session.thatHistory.unshift(thatContext);
-    }
-    callback(response);
+    responseHolder = responseHolder.then( ((callback, session, thatContext) => {
+      return (response) => {
+      response = response.trim();
+      if (response.length > 0)
+      {
+        // console.log("Adding "+response+" to response history");
+        session.responseHistory.unshift(response);
+      }
+      if (thatContext.length > 0)
+      {
+        // console.log("Adding "+thatContext+" to that history");
+        session.thatHistory.unshift(thatContext);
+      }
+      if (callback) {callback(response)}
+    }})(callback, session, thatContext))
+    .catch((err)=> {
+      console.log("Promise chain failed: " + err + "\n" + err.stack);
+    });
+    return responseHolder;
   }
   else
   {
