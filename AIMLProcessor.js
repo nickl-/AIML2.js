@@ -155,73 +155,95 @@ AIMLProcessor.prototype.getAttributeOrTagValue = function (node, attrName)
 
 AIMLProcessor.prototype.evalTagContent = function(node, ignoreAttributes)
 {
-  var result = "";
+  var promise = ValuePromise("");
   if (node.hasChildNodes())
   {
     for (var i = 0; i < node.childNodes.length; i++)
     {
       if (!ignoreAttributes || ignoreAttributes == [] || ignoreAttributes.indexOf(node.childNodes[i].nodeName) <= -1)
       {
-        result = result + this.recursEval(node.childNodes[i]);
+        promise = promise.then(((node) => {
+          return (result) => {
+            return this.recursEval(node).then((nextResult) => {
+              return result + nextResult
+            })
+          }
+        })(node.childNodes[i]));
       }
     }
   }
-  return result;
+  return promise;
 }
 
 AIMLProcessor.prototype.set = function(node)
 {
   var predicateName = this.getAttributeOrTagValue(node, "name");
   var varName       = this.getAttributeOrTagValue(node, "var");
-  var result = this.evalTagContent(node, ["name", "var"]).trim().replace(/[\r\n]/g);
-  if (predicateName)
-  {
-    this.session.predicates.set(predicateName, result);
-  }
-  else if (varName)
-  {
-    this.vars.set(varName, result);
-  }
-  if (this.bot.sets.get("pronoun").indexOf(predicateName) > - 1)
-  {
-    result = predicateName; // what?
-  }
-  return result;
+  var promise = this.evalTagContent(node, ["name", "var"])
+  .then(((predicateName, varName) => {
+    return (result) => {
+      result = result.trim().replace(/[\r\n]/g);
+      if (predicateName)
+      {
+        this.session.predicates.set(predicateName, result);
+      }
+      else if (varName)
+      {
+        this.vars.set(varName, result);
+      }
+      if (this.bot.sets.get("pronoun").indexOf(predicateName) > - 1)
+      {
+        result = predicateName; // what?
+      }
+      return result;
+    }
+  })(predicateName, varName));
+  return promise;
 }
 
 AIMLProcessor.prototype.get = function (node)
 {
   var predicateName = this.getAttributeOrTagValue(node, "name");
   var varName       = this.getAttributeOrTagValue(node, "var");
-  var result;
-  if (predicateName)
-  {
-    result = this.session.predicates.get(predicateName);
-  }
-  else if (varName)
-  {
-    result = this.vars.get(varName);
-  }
-  return result;
+  var promise = new Promise(((fullfill) => {
+    if (predicateName)
+    {
+      result = this.session.predicates.get(predicateName);
+    }
+    else if (varName)
+    {
+      result = this.vars.get(varName);
+    }
+    fullfill(result);
+  })(predicateName, varName));
+  return promise;
 }
 
 AIMLProcessor.prototype.map = function(node)
 {
-  var mapName = this.getAttributeOrTagValue(node, "name");
-  var contents = this.evalTagContent(node, ["name"]).trim();
-  if (!mapName)
-  {
-    result = "<map>"+contents+"</map>";
-  }
-  else
-  {
-    map = this.bot.maps.get(mapName);
-    if (map)
-    {
-      result = map.get(contents.toUpperCase()).trim();
-    }
-  }
-  return result;
+  var mapPromise = this.getAttributeOrTagValue(node, "name").then(
+    (mapName) => {
+      var promise = this.evalTagContent(node, ["name"])
+      .then(((mapName)=> { return (contents) => {
+        contents = contents.trim();
+        if (!mapName)
+        {
+          result = "<map>"+contents+"</map>";
+        }
+        else
+        {
+          map = this.bot.maps.get(mapName);
+          if (map)
+          {
+            result = map.get(contents.toUpperCase()).trim();
+          }
+        }
+        return result;
+      }
+    })(mapName));
+    return promise;
+  });
+  return mapPromise;
 }
 
 AIMLProcessor.prototype.random = function(node)
@@ -239,26 +261,29 @@ AIMLProcessor.prototype.random = function(node)
   return this.evalTagContent(liList[r]);
 }
 
+function ValuePromise(value) {
+  return new Promise((fullfill) => {fullfill(value)});
+}
+
 AIMLProcessor.prototype.inputStar = function(node)
 {
   var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
   if (!index) { index = 0; }
-  return this.inputStars[index];
+  return ValuePromise(this.inputStars[index]);
 }
 
 AIMLProcessor.prototype.thatStar = function(node)
 {
   var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
   if (!index) { index = 0; }
-  return this.thatStars[index];
+  return ValuePromise(this.thatStars[index]);
 }
 
 AIMLProcessor.prototype.topicStar = function(node)
 {
   var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
   if (!index) { index = 0; }
-  console.log("getting " + index + "th topic star. TopicStars = ", this.topicStars);
-  return this.topicStars[index];
+  return ValuePromise(this.topicStars[index]);
 }
 
 AIMLProcessor.prototype.that = function(node)
@@ -270,22 +295,22 @@ AIMLProcessor.prototype.that = function(node)
     var tmp = indices.split(/,/); // indices should be two comma-separated integers
     indices = [parseInt(tmp[0])-1, parseInt(tmp[1])-1];
   }
-  return (this.session.thatHistory[indices[0]] || ['*'])[indices[1]];
+  return ValuePromise((this.session.thatHistory[indices[0]] || ['*'])[indices[1]]);
 }
 
 AIMLProcessor.prototype.input = function (node) {
   var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
-  return this.session.inputHistory[index];
+  return ValuePromise(this.session.inputHistory[index]);
 };
 
 AIMLProcessor.prototype.request = function (node) {
   var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
-  return this.session.requestHistory[index];
+  return ValuePromise(this.session.requestHistory[index]);
 };
 
 AIMLProcessor.prototype.response = function (node) {
   var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
-  return this.session.responseHistory[index];
+  return ValuePromise(this.session.responseHistory[index]);
 };
 
 AIMLProcessor.prototype.person = function (node)
@@ -296,9 +321,9 @@ AIMLProcessor.prototype.person = function (node)
   }
   else
   {
-    result = this.inputStars[0];
+    result = ValuePromise(this.inputStars[0]);
   }
-  return this.bot.preProcessor.person(result).trim();
+  return result.then((response) => {return this.bot.preProcessor.person(response).trim()});
 }
 
 AIMLProcessor.prototype.person2 = function (node)
@@ -309,56 +334,60 @@ AIMLProcessor.prototype.person2 = function (node)
   }
   else
   {
-    result = this.inputStars[0];
+    result = ValuePromise(this.inputStars[0]);
   }
-  return this.bot.preProcessor.person2(result).trim();
+  return result.then((response) => {return this.bot.preProcessor.person2(response).trim()});
 }
 
 AIMLProcessor.prototype.botNode = function (node)
 {
   var prop = this.getAttributeOrTagValue(node, "name");
-  return this.bot.properties.get(prop).trim();
+  return ValuePromise(this.bot.properties.get(prop).trim());
 }
 
 AIMLProcessor.prototype.normalize = function (node)
 {
   var result = this.evalTagContent(node);
-  return this.bot.preProcessor.normalize(result);
+  return result.then((response) => {return this.bot.preProcessor.normalize(response)});
 }
 
 AIMLProcessor.prototype.denormalize = function (node)
 {
   var result = this.evalTagContent(node);
-  return this.bot.preProcessor.denormalize(result);
+  return result.then((response) => {return this.bot.preProcessor.denormalize(response)});
 }
 
 AIMLProcessor.prototype.explode = function (node)
 {
   var result = this.evalTagContent(node);
-  return result.trim().split(/\s*/).join(' ');
+  return result.then((response) => {return response.trim().split(/\s*/).join(' ')});
 }
 
 AIMLProcessor.prototype.uppercase = function (node)
 {
   var result = this.evalTagContent(node);
-  return result.trim().toUpperCase();
+  return result.then((response) => {return response.trim().toUpperCase()});
 }
 
 AIMLProcessor.prototype.lowercase = function (node)
 {
   var result = this.evalTagContent(node);
-  return result.trim().toLowerCase();
+  return result.then((response) => { response.trim().toLowerCase() });
 }
 
 AIMLProcessor.prototype.formal = function(node)
 {
-  var result = this.evalTagContent(node).trim().split(/\s+/);
-  var response = '';
-  for (var i = 0; i < result.length; i++) {
-    response = response + result[i].charAt(0).toUpperCase()
-      + result[i].substring(1) + ' ';
-  }
-  return response.trim();
+  var result = this.evalTagContent(node)
+  .then((prevResult) => {
+    var response = "";
+    prevResult = prevResult.trim().split(/\s+/);
+    for (var i = 0; i < prevResult.length; i++) {
+      response = response + prevResult[i].charAt(0).toUpperCase()
+      + prevResult[i].substring(1) + ' ';
+    }
+    return response.trim();
+  });
+  return result;
 }
 
 AIMLProcessor.prototype.recurseLearn = function (node)
@@ -367,10 +396,19 @@ AIMLProcessor.prototype.recurseLearn = function (node)
   else if (node.nodeName == "eval") { return this.evalTagContent( node ) }
   else
   {
-    var result = "";
+    var promise = ValuePromise("");
+    // create closure for function that chains results together
+    var resultChainer = (child) => {
+      return (result) => {
+          return this.recurseLearn(child).then((nextResult) => {
+            return result + nextResult;
+          })
+      }
+    };
+
     for (var i = 0; i < node.childNodes.length; i++)
     {
-      result = result + this.recurseLearn(node.childNodes[i]);
+      promise = promise.then(resultChainer(node.childNodes[i]));
     }
     var attrString = "";
     if (node.hasAttributes())
@@ -380,7 +418,8 @@ AIMLProcessor.prototype.recurseLearn = function (node)
         attrString = attrString + " " + node.attributes[i].name + "=\"" + node.attributes[i].value + "\"";
       }
     }
-    return "<" + node.nodeName + attrString + ">" + result + "</" + node.nodeName + ">";
+    return proimise.then(((nodeName, attrString) => {
+      return (result) => {return "<" + nodeName + attrString + ">" + result + "</" + nodeName + ">"}})(node.nodeName, attrString));
   }
 }
 
@@ -393,7 +432,6 @@ AIMLProcessor.prototype.learn = function(node)
     if (child.nodeName == "category")
     {
       // console.log("Processing learn category" + DOMPrinter.serializeToString(child));
-      var c = {depth: 0, pattern: '*', topic: "*", that: '*', template: '', file: "learn"};
       var grandkids = child.childNodes;
       var pattern = "", that = "<that>*</that>", template = "";
       for (var j = 0; j < grandkids.length; j++)
@@ -412,46 +450,41 @@ AIMLProcessor.prototype.learn = function(node)
           template = this.recurseLearn(grandchild);
         }
       }
-      pattern = AIMLProcessor.trimTag(pattern, "pattern").toUpperCase();
-      c.pattern = pattern.replace(/[\n\s]/g, ' ');
-      that = AIMLProcessor.trimTag(that, "that").toUpperCase();
-      c.that = that.replace(/[\n\s]g/, ' ');
-      c.template = AIMLProcessor.trimTag(template, "template");
+      Promise.all([pattern, that, template]).then(((node) => {(results) => {
+        var c = {depth: 0, pattern: '*', topic: "*", that: '*', template: '', file: "learn"};
+        pattern = AIMLProcessor.trimTag(results[0], "pattern").toUpperCase();
+        c.pattern = pattern.replace(/[\n\s]/g, ' ');
+        that = AIMLProcessor.trimTag(results[1], "that").toUpperCase();
+        c.that = that.replace(/[\n\s]g/, ' ');
+        c.template = AIMLProcessor.trimTag(results[2], "template");
 
-      if (node.nodeName == 'learn')
-      {
-        // console.log("Learning new category for session " + this.session.id);
-        c.session_id = this.session.id;
-      }
+        if (node.nodeName == 'learn')
+        {
+          // console.log("Learning new category for session " + this.session.id);
+          c.session_id = this.session.id;
+        }
 
-      this.bot.addCategory(c);
+        this.bot.addCategory(c);
+      }})(node));
     }
   }
-  return "";
+  return ValuePromise("");
 }
 
 AIMLProcessor.prototype.loopCondition = function(node)
 {
-  var loop = true,
-    result = "", loopCnt = 0;
-    while (loop && loopCnt < 99) // need MagicNumbers support
-    {
-      loopCnt = loopCnt + 1;
-      loopResult = this.condition(node);
-      // missing check for too many SRAISs
+  var chainLoopResult = (node, loopCnt, prevResult) => {
+    return (loopResult) => {
+      if (loopCnt > Config.MAX_LOOP_COUNT) { throw new Error("Too many loops in condition!"); }
       if (loopResult.indexOf("<loop/>") > -1) {
-        loopResult = loopResult.replace("<loop/>", "");
-        loop = true;
+        return this.condition(node).then(chainLoopResult(node, loopCnt + 1, prevResult + loopResult.replace("<loop/>", "")));
+      } else {
+        return prevResult + loopResult;
       }
-      else
-      {
-        loop = false;
-      }
-      result = result + loopResult;
     }
-    if (loopCnt >= Config.MAX_LOOP_COUNT)
-      throw new Error("loop many loops in condition");
-    return result;
+  };
+
+  return this.condition(node).then(chainLoopResult(node, 0, ""));
 }
 
 AIMLProcessor.prototype.condition = function(node)
@@ -502,7 +535,7 @@ AIMLProcessor.prototype.condition = function(node)
       }
     }
   }
-  return "";
+  return ValuePromise("");
 }
 
 AIMLProcessor.prototype.date = function(node) {
@@ -513,7 +546,7 @@ AIMLProcessor.prototype.date = function(node) {
   // console.log("Date tag with format " + format + " locale " + locale + " timzeone " + timezone);
   var result = strftime.timezone(timezone).localize(locale)(format);
   // console.log("   Result:" + result);
-  return result;
+  return ValuePromise(result);
 }
 
 AIMLProcessor.prototype.interval = function(node) {
@@ -533,7 +566,7 @@ AIMLProcessor.prototype.interval = function(node) {
   if (style == "months") { result = ""+Math.floor( (delta.getYear()-70)*12 + delta.getMonth() ) }
   if (style == "days")   { result = ""+Math.floor( delta.valueOf() / (24*60*60*1000) ) }
   if (style == "hours" ) { result = ""+Math.floor( delta.valueOf() / (60*60*1000) ) }
-  return result
+  return ValuePromise(result);
 }
 
 AIMLProcessor.prototype.srai = function(node)
@@ -541,30 +574,33 @@ AIMLProcessor.prototype.srai = function(node)
   this.sraiCount = this.sraiCount + 1;
   if (this.sraiCount > Config.MAX_SRAI_DEPTH) { return "Too much recursion!" }
   // console.log("srai redirecting with " + this.evalTagContent( node ).trim().replace(/[\r\n]/g));
-  var result = this.bot.preProcessor.normalize(this.evalTagContent( node ).trim().replace(/[\r\n]/g));
-  // need to implement topics by way of variables and predicates
-  // once that's done, need to check for new topic here
-  var matchedNode = this.bot.root.match(result, "*", this.session.predicates.get('topic') || "*");
-  if (matchedNode)
-  {
-    // console.log("srai evaluating " + matchedNode.category.pattern + ", " + matchedNode.category.file);
-    var template = "<template>"+matchedNode.category.template+"</template>";
-    var root = DOMParser.parseFromString(template).childNodes[0];
-    response = this.recursEval(root);
-  }
-  else
-  {
-    response = "ERROR IN SRAI DEPTH " + this.sraiCount;
-  }
-  this.sraiCount = this.sraiCount - 1;
-  return response.trim();
-
+  var promise = this.evalTagContent(node).then(
+    (result) => {
+      result = this.bot.preProcessor.normalize(result.trim().replace(/[\r\n]/g));
+      // need to implement topics by way of variables and predicates
+      // once that's done, need to check for new topic here
+      var matchedNode = this.bot.root.match(result, "*", this.session.predicates.get('topic') || "*");
+      if (matchedNode)
+      {
+        // console.log("srai evaluating " + matchedNode.category.pattern + ", " + matchedNode.category.file);
+        var template = "<template>"+matchedNode.category.template+"</template>";
+        var root = DOMParser.parseFromString(template).childNodes[0];
+        response = this.recursEval(root);
+      }
+      else
+      {
+        response = ValuePromsie("ERROR IN SRAI DEPTH " + this.sraiCount);
+      }
+      this.sraiCount = this.sraiCount - 1;
+      return response;
+  });
+  return promise;
 }
 
-AIMLProcessor.prototype.recursEval = function (node)
+  AIMLProcessor.prototype.recursEval = function (node)
 {
-  if (node.nodeName == "#text") { return node.nodeValue }
-  else if (node.nodeName == "#comment") { return "" }
+  if (node.nodeName == "#text") { return ValuePromise(node.nodeValue) }
+  else if (node.nodeName == "#comment") { return  ValuePromise("") }
   else if (node.nodeName == "template") { return this.evalTagContent( node ) }
   else if (node.nodeName == "random" ) { return this.random( node ) }
   else if (node.nodeName == "star") { return this.inputStar( node ) }
@@ -584,7 +620,7 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "set") { return this.set(node) }
   else if (node.nodeName == "map") { return this.map(node) }
   else if (node.nodeName == "get") { return this.get(node) }
-  else if (node.nodeName == "think") { this.evalTagContent(node); return ""; }
+  else if (node.nodeName == "think") { this.evalTagContent(node); return ValuePromise(""); }
   else if (node.nodeName == "normalize") { return this.normalize(node) }
   else if (node.nodeName == "denormalize") { return this.denormalize(node) }
   else if (node.nodeName == "explode") { return this.explode(node) }
@@ -593,17 +629,15 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "lowercase") { return this.lowercase(node) }
   else if (node.nodeName == "condition") { return this.loopCondition(node) }
   else if (node.nodeName == "learn") { return this.learn(node) }
-  else { return DOMPrinter.serializeToString(node) }
+  else { return ValuePromise(DOMPrinter.serializeToString(node)) }
 }
 
 AIMLProcessor.prototype.evalTemplate = function () {
-  return new Promise((function(resolve, reject) {
     var response = "";
     var template = "<template>"+this.template+"</template>";
     var root = DOMParser.parseFromString(template).childNodes[0];
     response = this.recursEval(root);
-    resolve(response);
-  }).bind(this))
+    return response;
 }
 
 // Static functions

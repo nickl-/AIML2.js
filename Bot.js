@@ -56,7 +56,7 @@ Bot.prototype.addProperties = function()
   });
 
   rl.on('close', () => {
-    console.log("Added " + count + " properties.");
+    // console.log("Added " + count + " properties.");
   });
   return count; // this doesn't actually work because of callbacks and events and stuff. I think a Promise might be a way to fix it but I don't really understand promises yet.
 }
@@ -94,7 +94,7 @@ Bot.prototype.addSets = function()
         console.log("Adding sets: failed to match ", files[i])
       }
     }
-    console.log("Added "+count+" sets.");
+    // console.log("Added "+count+" sets.");
     return count; // this doesn't actually work because of callbacks and events and stuff. I think a Promise might be a way to fix it but I don't really understand promises yet.
   });
 
@@ -136,7 +136,7 @@ Bot.prototype.addMaps = function()
         console.log("Adding maps: failed to match ", files[i])
       }
     }
-    console.log("Added "+count+" maps.");
+    // console.log("Added "+count+" maps.");
     return count; // this doesn't actually work because of callbacks and events and stuff. I think a Promise might be a way to fix it but I don't really understand promises yet.
   });
 
@@ -170,7 +170,7 @@ Bot.prototype.loadAIMLFiles = function () {
   fs.readdir(default_aiml_dir, (function (err,files) {
 
     function processCategories(categories) {
-      console.log("Loaded ", categories.length, " categories.");
+      // console.log("Loaded ", categories.length, " categories.");
       for (var c of categories)
       {
         this.addCategory(c);
