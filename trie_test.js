@@ -14,34 +14,25 @@ bot.sets.set("be", tmpSet);
 
 bot.loadAIMLFiles();
 
-setTimeout( function runTest() {
-  console.log("Called runTest()");
-  if (bot.isAIMLFileLoadingFinished) {
-
 function askAlice(req) {
-  console.log(">> "+ req);
-  bot.respond(req, session, console.log);
+  console.log(">>" + req);
+  return bot.respond(req, session).then(function (result) {
+    console.log(result);
+  }).catch(function(error) {console.log("Error: " + err); console.log(err.stack)})
 }
+var response = askAlice("You are lazy.");
 
-askAlice("You are lazy.");
+response = response.then(function(result) {return askAlice("Why will not you bonk and jive?")});
 
-askAlice("Why will not you bonk and jive?");
+response = response.then(function(result) {return askAlice("What is cheez whiz made from?")});
 
-askAlice("What is cheez whiz made from?");
+response = response.then(function(result) {return askAlice("Would you rather fish for salmon or sleep in?")});
 
-askAlice("Would you rather fish for salmon or sleep in?");
+response = response.then(function(result) {return askAlice("Alice 2.0, Name something you find at a beach")});
 
-askAlice("Alice 2.0, Name something you find at a beach");
+response = response.then(function(result) {return askAlice("what is the capital of arkansas?")});
 
-askAlice("what is the capital of arkansas?");
-
-askAlice("what is the capital of Canada?");
-
-} else {
-  setTimeout(runTest, 1000);
-}
-}, 1000);
-
+response = response.then(function(result) {return askAlice("what is the capital of Canada?")});
 
 const readline = require('readline');
 
@@ -51,5 +42,5 @@ const rl = readline.createInterface({
 });
 
 rl.on('line', (line) => {
-  bot.respond(line, session, console.log);
+  bot.respond(line, session).then(function(result) {console.log(result)});
 });

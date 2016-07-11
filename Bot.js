@@ -3,6 +3,7 @@ fs = require('fs');
 readline = require("readline");
 xmldom = require("xmldom")
 DOMPrinter = new xmldom.XMLSerializer();
+Promise = require("bluebird");
 
 TrieNode = require('./TrieNode');
 Path = require('./Path');
@@ -196,9 +197,23 @@ Bot.prototype.loadAIMLFiles = function () {
 
 }
 
+// to promisify this and deal with the possible delay in loading of AIML
+// we need a wrapper function
 Bot.prototype.respond = function (input, session, callback) {
-  if (this.isAIMLFileLoadingFinished)
-  {
+  return new Promise(((input, session, callback) => {return (fullfill, reject) => {
+    if (this.isAIMLFileLoadingFinished) {
+        var temp = this.$respond(input, session, callback);
+      fullfill(temp);
+    } else {
+      this.ee.on("AIML FILES LOADED", ()=>{
+        var temp = this.$respond(input, session, callback);
+        fullfill(temp);
+      })
+    }
+  }})(input, session, callback))
+}
+
+Bot.prototype.$respond = function (input, session, callback) {
     var response = '', matchedNode, responseHolder;
     // console.log("Responding to reqest from session "+session.id);
 
@@ -303,17 +318,12 @@ Bot.prototype.respond = function (input, session, callback) {
         session.thatHistory.unshift(thatContext);
       }
       if (callback) {callback(response)}
+      return response;
     }})(callback, session, thatContext))
     .catch((err)=> {
       console.log("Promise chain failed: " + err + "\n" + err.stack);
     });
     return responseHolder;
-  }
-  else
-  {
-    console.log("Bot not ready yet... trying again in 1 second.");
-    setTimeout((function() { this.respond(input, callback) }).bind(this), 1000);
-  }
 }
 
 module.exports = Bot;

@@ -3,6 +3,7 @@ var DOMParser = new xmldom.DOMParser();
 var DOMPrinter = new xmldom.XMLSerializer();
 var fs = require('fs');
 var Config = require('./Config');
+var Promise = require("bluebird");
 
 function AIMLProcessor(template, inputStars, thatStars, topicStars, session, bot) {
   this.template = template;
