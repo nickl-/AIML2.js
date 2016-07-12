@@ -184,7 +184,7 @@ AIMLProcessor.prototype.set = function(node)
           .then(((predicateName, varName) => {
             return (result) => {
               result = result.trim().replace(/[\r\n]/g);
-              console.log("Setting " + (predicateName || varName) + " to " + result);
+              // console.log("Setting " + (predicateName || varName) + " to " + result);
               if (predicateName)
               {
                 this.session.predicates.set(predicateName, result);
@@ -279,51 +279,80 @@ function ValuePromise(value) {
 
 AIMLProcessor.prototype.inputStar = function(node)
 {
-  var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
-  if (!index) { index = 0; }
-  return ValuePromise(this.inputStars[index]);
+  return this.getAttributeOrTagValue(node, "index").
+  then((value) =>
+  {
+    var index = parseInt(value) - 1;
+    if (!index) { index = 0; }
+    return this.inputStars[index];
+  });
 }
 
 AIMLProcessor.prototype.thatStar = function(node)
 {
-  var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
-  if (!index) { index = 0; }
-  return ValuePromise(this.thatStars[index]);
+  return this.getAttributeOrTagValue(node, "index").
+  then((value) =>
+  {
+    var index = parseInt(value) - 1;
+    if (!index) { index = 0; }
+    return this.thatStars[index];
+  });
 }
 
 AIMLProcessor.prototype.topicStar = function(node)
 {
-  var index = parseInt(this.getAttributeOrTagValue(node, "index")) - 1;
-  if (!index) { index = 0; }
-  return ValuePromise(this.topicStars[index]);
+  return this.getAttributeOrTagValue(node, "index").
+  then((value) =>
+  {
+    var index = parseInt(value) - 1;
+    if (!index) { index = 0; }
+    return this.topicStars[index];
+  });
 }
 
 AIMLProcessor.prototype.that = function(node)
 {
-  var indices = this.getAttributeOrTagValue(node, "index");
-  if (!indices) { indices = [0,0] }
-  else
-  {
-    var tmp = indices.split(/,/); // indices should be two comma-separated integers
-    indices = [parseInt(tmp[0])-1, parseInt(tmp[1])-1];
-  }
-  return ValuePromise((this.session.thatHistory[indices[0]] || ['*'])[indices[1]]);
+  return this.getAttributeOrTagValue(node, "index")
+  .then((indices) => {
+    if (!indices) { indices = [0,0] }
+    else
+    {
+      var tmp = indices.split(/,/); // indices should be two comma-separated integers
+      indices = [parseInt(tmp[0])-1, parseInt(tmp[1])-1];
+    }
+    return (this.session.thatHistory[indices[0]] || ['*'])[indices[1]];
+  });
 }
 
 AIMLProcessor.prototype.input = function (node) {
-  var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
-  return ValuePromise(this.session.inputHistory[index]);
-};
+  return this.getAttributeOrTagValue(node, "index").
+  then((value) =>
+  {
+    var index = (parseInt(value) || 1) - 1;
+    if (!index) { index = 0; }
+    return this.session.inputHistory[index];
+  });
+}
 
 AIMLProcessor.prototype.request = function (node) {
-  var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
-  return ValuePromise(this.session.requestHistory[index]);
-};
+  return this.getAttributeOrTagValue(node, "index").
+  then((value) =>
+  {
+    var index = (parseInt(value) || 1) - 1;
+    if (!index) { index = 0; }
+    return this.session.requestHistory[index];
+  });
+}
 
 AIMLProcessor.prototype.response = function (node) {
-  var index = (parseInt(this.getAttributeOrTagValue(node, "index")) || 1) - 1;
-  return ValuePromise(this.session.responseHistory[index]);
-};
+  return this.getAttributeOrTagValue(node, "index").
+  then((value) =>
+  {
+    var index = (parseInt(value) || 1) - 1;
+    if (!index) { index = 0; }
+    return this.session.responseHistory[index];
+  });
+}
 
 AIMLProcessor.prototype.person = function (node)
 {
@@ -403,6 +432,26 @@ AIMLProcessor.prototype.formal = function(node)
     return response.trim();
   });
   return result;
+}
+
+AIMLProcessor.prototype.first = function (node)
+{
+    var result = this.evalTagContent(node)
+    .then((result) =>
+    {
+      return result.trim().split(/\s+/)[0];
+    });
+    return result;
+}
+
+AIMLProcessor.prototype.rest = function (node)
+{
+    var result = this.evalTagContent(node)
+    .then((result) =>
+    {
+      return result.trim().split(/\s+/).slice(1).join(' ');
+    });
+    return result;
 }
 
 AIMLProcessor.prototype.recurseLearn = function (node)
@@ -489,15 +538,15 @@ AIMLProcessor.prototype.learn = function(node)
 AIMLProcessor.prototype.loopCondition = function(node)
 {
   var chainLoopResult = (node, loopCnt, prevResult) => {
-    console.log("Creating new chain loop result handler");
+    // console.log("Creating new chain loop result handler");
     return (loopResult) => {
-      console.log("Returning loop iteration at count " + loopCnt);
+      // console.log("Returning loop iteration at count " + loopCnt);
       if (loopCnt > Config.MAX_LOOP_COUNT) { throw new Error("Too many loops in condition!"); }
       if (loopResult.indexOf("<loop/>") > -1) {
-        console.log("Found <loop/>. Repeating.");
+        // console.log("Found <loop/>. Repeating.");
         return this.condition(node).then(chainLoopResult(node, loopCnt + 1, prevResult + loopResult.replace("<loop/>", "")));
       } else {
-        console.log("No <loop/> found. Returning");
+        // console.log("No <loop/> found. Returning");
         return prevResult + loopResult;
       }
     }
@@ -573,7 +622,7 @@ AIMLProcessor.prototype.condition = function(node)
                     || (this.vars.has(varName || liVar) && (value == "*")
                   )))
                   {
-                    console.log("returning with li because value matched variable " + variable);
+                    console.log("returning with li because value matched variable " + varName);
                     return this.evalTagContent(n, ignoreAttrs);
                   }
                   return null;
@@ -697,6 +746,8 @@ AIMLProcessor.prototype.srai = function(node)
   else if (node.nodeName == "lowercase") { return this.lowercase(node) }
   else if (node.nodeName == "condition") { return this.loopCondition(node) }
   else if (node.nodeName == "learn") { return this.learn(node) }
+  else if (node.nodeName == "first") { return this.first(node) }
+  else if (node.nodeName == "rest")  { return this.rest(node) }
   else { return ValuePromise(DOMPrinter.serializeToString(node)) }
 }
 

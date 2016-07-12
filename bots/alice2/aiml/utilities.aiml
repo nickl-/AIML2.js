@@ -17,14 +17,14 @@
 <!-- For more information see http://www.alicebot.org -->
 <!--  -->
 <category><pattern>ACRONYM *</pattern>
-<template><think><set var="list"><star/></set>
+<template><think><set var="list"><star/> NIL</set>
 <set var="acronym"/>
 </think>
 <condition var="list">
 <li value="NIL"><uppercase><get var="acronym"/></uppercase></li>
 <li><think><set var="word"><first><get var="list"/></first></set>
 <set var="list"><rest><get var="list"/></rest></set>
-<set var="acronym"><get var="acronym"/> <srai>FIRSTLETTER <explode><get var="word"/></explode></srai></set>
+<set var="acronym"><get var="acronym"/> <first><explode><get var="word"/></explode></first></set>
 </think>
 <loop/> </li>
 
@@ -499,7 +499,7 @@ upper = <set var="upper"><srai>LARGEROF <star index="2"/> <star index="4"/></sra
 </think>
 <condition>
 <li><var>letters</var><value>end</value> <star index="2"/> has only <map><name>predecessor</name><get var="count"/></map> letters.</li>
-<li><var>count</var><value><get var="nth"/></value> 
+<li><var>count</var><value><get var="nth"/></value>
 The <map><name>number2ordinal</name><get var="nth"/></map> letter of "<star index="2"/>" is <srai>FIRSTLETTER <get var="letters"/></srai></li>
 <li><think>
 <set var="letters"><srai>REMAININGWORDS <get var="letters"/></srai></set>
