@@ -614,7 +614,7 @@ AIMLProcessor.prototype.condition = function(node)
                     || (this.session.predicates.has(predicate || liPred) && (value == "*") )
                   ))
                   {
-                    console.log("returning with li because value matched predicate " + predicate);
+                    // console.log("returning with li because value matched predicate " + predicate);
                     return this.evalTagContent(n, ignoreAttrs);
                   }
                   else if ((varName || liVar) && value && (
@@ -622,7 +622,7 @@ AIMLProcessor.prototype.condition = function(node)
                     || (this.vars.has(varName || liVar) && (value == "*")
                   )))
                   {
-                    console.log("returning with li because value matched variable " + varName);
+                    // console.log("returning with li because value matched variable " + varName);
                     return this.evalTagContent(n, ignoreAttrs);
                   }
                   return null;
