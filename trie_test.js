@@ -34,6 +34,8 @@ response = response.then(function(result) {return askAlice("what is the capital 
 
 response = response.then(function(result) {return askAlice("what is the capital of Canada?")});
 
+response = response.then(function(result) {return askAlice("How old are you?")});
+
 const readline = require('readline');
 
 const rl = readline.createInterface({

@@ -139,9 +139,8 @@ function  AIMLToCategories(filename, callback) {
 
 AIMLProcessor.prototype.getAttributeOrTagValue = function (node, attrName)
 {
-  var result = "";
   if (node.hasAttribute(attrName)) {
-    return node.getAttribute(attrName)
+    return ValuePromise(node.getAttribute(attrName))
   }
   for (var i = 0; i < node.childNodes.length; i++)
   {
@@ -150,7 +149,7 @@ AIMLProcessor.prototype.getAttributeOrTagValue = function (node, attrName)
       return this.evalTagContent( n )
     }
   }
-  return null;
+  return ValuePromise(null);
 }
 
 AIMLProcessor.prototype.evalTagContent = function(node, ignoreAttributes)
@@ -177,35 +176,44 @@ AIMLProcessor.prototype.evalTagContent = function(node, ignoreAttributes)
 
 AIMLProcessor.prototype.set = function(node)
 {
-  var predicateName = this.getAttributeOrTagValue(node, "name");
-  var varName       = this.getAttributeOrTagValue(node, "var");
-  var promise = this.evalTagContent(node, ["name", "var"])
-  .then(((predicateName, varName) => {
-    return (result) => {
-      result = result.trim().replace(/[\r\n]/g);
-      if (predicateName)
-      {
-        this.session.predicates.set(predicateName, result);
-      }
-      else if (varName)
-      {
-        this.vars.set(varName, result);
-      }
-      if (this.bot.sets.get("pronoun").indexOf(predicateName) > - 1)
-      {
-        result = predicateName; // what?
-      }
-      return result;
-    }
-  })(predicateName, varName));
-  return promise;
+  var predicatePromise = this.getAttributeOrTagValue(node, "name").then(
+    (predicateName) => {
+      var varPromise       = this.getAttributeOrTagValue(node, "var").then(
+        (varName) => {
+          var promise = this.evalTagContent(node, ["name", "var"])
+          .then(((predicateName, varName) => {
+            return (result) => {
+              result = result.trim().replace(/[\r\n]/g);
+              console.log("Setting " + (predicateName || varName) + " to " + result);
+              if (predicateName)
+              {
+                this.session.predicates.set(predicateName, result);
+              }
+              else if (varName)
+              {
+                this.vars.set(varName, result);
+              }
+              if (this.bot.sets.get("pronoun").indexOf(predicateName) > - 1)
+              {
+                result = predicateName; // what?
+              }
+              return result;
+            }
+        })(predicateName, varName));
+        return promise;
+    });
+    return varPromise;
+  });
+  return predicatePromise;
 }
 
 AIMLProcessor.prototype.get = function (node)
 {
-  var predicateName = this.getAttributeOrTagValue(node, "name");
-  var varName       = this.getAttributeOrTagValue(node, "var");
-  var promise = new Promise(((fullfill) => {
+  var predicatePromise = this.getAttributeOrTagValue(node, "name")
+  .then((predicateName) => {
+  var varPromise       = this.getAttributeOrTagValue(node, "var")
+  .then((varName) => {
+  var promise = new Promise(((predicateName, varName) => {return (fullfill) => {
     if (predicateName)
     {
       result = this.session.predicates.get(predicateName);
@@ -215,8 +223,12 @@ AIMLProcessor.prototype.get = function (node)
       result = this.vars.get(varName);
     }
     fullfill(result);
-  })(predicateName, varName));
+  }})(predicateName, varName));
   return promise;
+  });
+  return varPromise;
+  });
+  return predicatePromise;
 }
 
 AIMLProcessor.prototype.map = function(node)
@@ -341,8 +353,11 @@ AIMLProcessor.prototype.person2 = function (node)
 
 AIMLProcessor.prototype.botNode = function (node)
 {
-  var prop = this.getAttributeOrTagValue(node, "name");
+  var promise = this.getAttributeOrTagValue(node, "name")
+  .then((prop) => {
   return ValuePromise(this.bot.properties.get(prop).trim());
+  });
+  return promise;
 }
 
 AIMLProcessor.prototype.normalize = function (node)
@@ -392,7 +407,7 @@ AIMLProcessor.prototype.formal = function(node)
 
 AIMLProcessor.prototype.recurseLearn = function (node)
 {
-  if (node.nodeName == "#text") { return node.nodeValue }
+  if (node.nodeName == "#text") { return ValuePromise(node.nodeValue) }
   else if (node.nodeName == "eval") { return this.evalTagContent( node ) }
   else
   {
@@ -418,7 +433,7 @@ AIMLProcessor.prototype.recurseLearn = function (node)
         attrString = attrString + " " + node.attributes[i].name + "=\"" + node.attributes[i].value + "\"";
       }
     }
-    return proimise.then(((nodeName, attrString) => {
+    return promise.then(((nodeName, attrString) => {
       return (result) => {return "<" + nodeName + attrString + ">" + result + "</" + nodeName + ">"}})(node.nodeName, attrString));
   }
 }
@@ -474,11 +489,15 @@ AIMLProcessor.prototype.learn = function(node)
 AIMLProcessor.prototype.loopCondition = function(node)
 {
   var chainLoopResult = (node, loopCnt, prevResult) => {
+    console.log("Creating new chain loop result handler");
     return (loopResult) => {
+      console.log("Returning loop iteration at count " + loopCnt);
       if (loopCnt > Config.MAX_LOOP_COUNT) { throw new Error("Too many loops in condition!"); }
       if (loopResult.indexOf("<loop/>") > -1) {
+        console.log("Found <loop/>. Repeating.");
         return this.condition(node).then(chainLoopResult(node, loopCnt + 1, prevResult + loopResult.replace("<loop/>", "")));
       } else {
+        console.log("No <loop/> found. Returning");
         return prevResult + loopResult;
       }
     }
@@ -489,84 +508,133 @@ AIMLProcessor.prototype.loopCondition = function(node)
 
 AIMLProcessor.prototype.condition = function(node)
 {
-  var childList = node.childNodes;
-  var lilist = [];
-  var ignoreAttrs = ["name", "var", "value"];
+
   var predicate = this.getAttributeOrTagValue(node, "name");
   var varName   = this.getAttributeOrTagValue(node, "var");
   var value     = this.getAttributeOrTagValue(node, "value");
-  for (var i = 0; i < childList.length; i = i+1)
-  {
-    if (childList[i].nodeName == "li") { lilist.push(childList[i]) }
-  }
-  if ( (lilist.length) == 0 && value && varName &&
-    (this.vars.get(varName).toLowerCase() == value.toLowerCase()) )
-  {
-    return this.evalTagContent(node, ignoreAttrs);
-  }
-  else
-  {
-    for (var i = 0; i < lilist.length; i++)
+  return Promise.all([predicate, varName, value])
+  .then(((node) => {return (attrs) => {
+    var childList = node.childNodes;
+    var lilist = [];
+    var ignoreAttrs = ["name", "var", "value"];
+
+    var predicate = attrs[0],
+    varName     = attrs[1],
+    value       = attrs[2];
+    for (var i = 0; i < childList.length; i = i+1)
     {
-      var n = lilist[i];
-      if (!predicate) { var liPred = this.getAttributeOrTagValue(n, "name") }
-      if (!varName) { var liVar = this.getAttributeOrTagValue(n, "var") }
-      value = this.getAttributeOrTagValue(n, "value");
-      if (!value)
+      if (childList[i].nodeName == "li") { lilist.push(childList[i]) }
+    }
+    if ( (lilist.length) == 0 && value &&
+          ((varName &&
+            (this.vars.get(varName).toLowerCase() == value.toLowerCase())) ||
+          (predicate &&
+          (this.session.predicates.get(predicate).toLowerCase() == value.toLowerCase()))) )
+    {
+      return this.evalTagContent(node, ignoreAttrs);
+    }
+    else
+    {
+      var promise = ValuePromise("");
+      for (var i = 0; i < lilist.length; i++)
       {
-        if (liPred && value && (
-          (this.session.predicates.get(liPred).toLowerCase() == value.toLowerCase())
-          || (this.session.predicates.has(liPred) && (value == "*") )))
-        {
-          return this.evalTagContent(n, ignoreAttrs);
+        var n = lilist[i];
+        promise = promise.then(((n) => {
+          return (result) => {
+            // if a previous iteratin of the for loop returned a result
+            // just pass it alon and don't do anything else
+            if (result) {
+              return result;
+            }
+            // because of the promise chain, we need to check for these at the lI value
+            // before we do the check at the condition level
+            var liPred = this.getAttributeOrTagValue(n, "name");
+            var liVar = this.getAttributeOrTagValue(n, "var");
+            var liValue = this.getAttributeOrTagValue(n, "value");
+            var liPromise = Promise.all([liPred, liVar, liValue])
+            .then(((predicate, varName, value, n)=>
+            {
+              return (liattrs) => {
+                var liPred = liattrs[0],
+                liVar = liattrs[1],
+                value = liattrs[2];
+                if (value)
+                {
+                  if ((predicate || liPred) && value && (
+                    (this.session.predicates.get(predicate || liPred).toLowerCase() == value.toLowerCase())
+                    || (this.session.predicates.has(predicate || liPred) && (value == "*") )
+                  ))
+                  {
+                    console.log("returning with li because value matched predicate " + predicate);
+                    return this.evalTagContent(n, ignoreAttrs);
+                  }
+                  else if ((varName || liVar) && value && (
+                    (this.vars.get(varName || liVar).toLowerCase() == value.toLowerCase())
+                    || (this.vars.has(varName || liVar) && (value == "*")
+                  )))
+                  {
+                    console.log("returning with li because value matched variable " + variable);
+                    return this.evalTagContent(n, ignoreAttrs);
+                  }
+                  return null;
+                }
+                else
+                {
+                  // if we made it here, we must be at the terminal
+                  // li, so we return it as the default
+                  return this.evalTagContent(n, ignoreAttrs);
+                }
+              }
+            })(predicate, varName, value, n));
+            return liPromise;
+          }})(n));
         }
-        else if (liVar && value && (
-          (this.vars.get(liVar).toLowerCase() == value.toLowerCase())
-          || (this.vars.has(liVar) && (value == "*") )))
-        {
-          return this.evalTagContent(n, ignoreAttrs);
-        }
-      }
-      else
-      {
-        // if we made it here, we must be at the terminal
-        // li, so we return it as the default
-        return this.evalTagContent(n, ignoreAttrs);
+        return promise;
       }
     }
-  }
-  return ValuePromise("");
+  })(node));
 }
 
 AIMLProcessor.prototype.date = function(node) {
-  var format   = this.getAttributeOrTagValue(node, "format");
-  var locale   = this.getAttributeOrTagValue(node, "locale");
-  var timezone = this.getAttributeOrTagValue(node, "timezone");
-  var strftime = require('strftime');
-  // console.log("Date tag with format " + format + " locale " + locale + " timzeone " + timezone);
-  var result = strftime.timezone(timezone).localize(locale)(format);
-  // console.log("   Result:" + result);
-  return ValuePromise(result);
+  var formatPromise   = this.getAttributeOrTagValue(node, "format");
+  var localePromise   = this.getAttributeOrTagValue(node, "locale");
+  var timezonePromise = this.getAttributeOrTagValue(node, "timezone");
+  return Promise.all([formatPromise, localePromise, timezonePromise])
+  .then((attrs) => {
+    var format = attrs[0], locale = attrs[1], timezone = attrs[2];
+    var strftime = require('strftime');
+    // console.log("Date tag with format " + format + " locale " + locale + " timzeone " + timezone);
+    var result = strftime.timezone(timezone).localize(locale)(format);
+    // console.log("   Result:" + result);
+    return result;
+  });
 }
 
 AIMLProcessor.prototype.interval = function(node) {
   // console.log(DOMPrinter.serializeToString(node));
   var style  = this.getAttributeOrTagValue(node, "style");
   var format = this.getAttributeOrTagValue(node, "format");
-  var from   = Date.parse(this.getAttributeOrTagValue(node, "from"));
-  var to     = Date.parse(this.getAttributeOrTagValue(node, "to"));
-  // console.log("Looking for interval between " + from + ' and ' + to);
-  if (style == null)   { style = "years" }
-  if (format == null) { format = "%B %d, %Y"; }
-  if (from == null)    { from = Date.parse("January 1, 1970") }
-  if (to == null)      { to = new Date()}
-  var delta = new Date(to - from);
-  var result = "unknown";
-  if (style == "years")  { result = ""+Math.floor(delta.getYear()-70) }
-  if (style == "months") { result = ""+Math.floor( (delta.getYear()-70)*12 + delta.getMonth() ) }
-  if (style == "days")   { result = ""+Math.floor( delta.valueOf() / (24*60*60*1000) ) }
-  if (style == "hours" ) { result = ""+Math.floor( delta.valueOf() / (60*60*1000) ) }
-  return ValuePromise(result);
+  var from   = this.getAttributeOrTagValue(node, "from");
+  var to     = this.getAttributeOrTagValue(node, "to");
+  return Promise.all([style, format, from, to])
+  .then((attrs) => {
+    var style = attrs[0],
+      format  = attrs[1],
+      from = Date.parse(attrs[2]),
+      to   = Date.parse(attrs[3]);
+    // console.log("Looking for interval between " + from + ' and ' + to);
+    if (style == null)   { style = "years" }
+    if (format == null) { format = "%B %d, %Y"; }
+    if (from == null)    { from = Date.parse("January 1, 1970") }
+    if (to == null)      { to = new Date()}
+    var delta = new Date(to - from);
+    var result = "unknown";
+    if (style == "years")  { result = ""+Math.floor(delta.getYear()-70) }
+    if (style == "months") { result = ""+Math.floor( (delta.getYear()-70)*12 + delta.getMonth() ) }
+    if (style == "days")   { result = ""+Math.floor( delta.valueOf() / (24*60*60*1000) ) }
+    if (style == "hours" ) { result = ""+Math.floor( delta.valueOf() / (60*60*1000) ) }
+    return result;
+  });
 }
 
 AIMLProcessor.prototype.srai = function(node)
@@ -620,7 +688,7 @@ AIMLProcessor.prototype.srai = function(node)
   else if (node.nodeName == "set") { return this.set(node) }
   else if (node.nodeName == "map") { return this.map(node) }
   else if (node.nodeName == "get") { return this.get(node) }
-  else if (node.nodeName == "think") { this.evalTagContent(node); return ValuePromise(""); }
+  else if (node.nodeName == "think") { return this.evalTagContent(node).then((res)=>{return""}); }
   else if (node.nodeName == "normalize") { return this.normalize(node) }
   else if (node.nodeName == "denormalize") { return this.denormalize(node) }
   else if (node.nodeName == "explode") { return this.explode(node) }
