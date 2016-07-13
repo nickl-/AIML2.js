@@ -614,7 +614,7 @@ AIMLProcessor.prototype.condition = function(node)
                 if (value)
                 {
                   if ((predicate || liPred) && value && (
-                    (this.session.predicates.get(predicate || liPred).toLowerCase() == value.toLowerCase())
+                    ((this.session.predicates.get(predicate || liPred) || "unknown").toLowerCase() == value.toLowerCase())
                     || (this.session.predicates.has(predicate || liPred) && (value == "*") )
                   ))
                   {
@@ -622,7 +622,7 @@ AIMLProcessor.prototype.condition = function(node)
                     return this.evalTagContent(n, ignoreAttrs);
                   }
                   else if ((varName || liVar) && value && (
-                    (this.vars.get(varName || liVar).toLowerCase() == value.toLowerCase())
+                    ((this.vars.get(varName || liVar) || "unknown").toLowerCase() == value.toLowerCase())
                     || (this.vars.has(varName || liVar) && (value == "*")
                   )))
                   {
@@ -727,13 +727,17 @@ AIMLProcessor.prototype.srai = function(node)
                   return response + " " + nextResponse;
                 })
               }
-            })(ap));
+            })(ap))
+            .catch(((cat, cnt) => { return (err) => {
+              console.log(category.pattern + ' at depth ' + cnt);
+              throw err;
+            }})(category, this.sraiCount+1));
           }
         }
         return responseHolder;
     }
   });
-  return promise;
+  return promise
 }
 
 function sraixPannous(input, hint)
