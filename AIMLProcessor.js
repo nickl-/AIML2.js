@@ -4,6 +4,7 @@ var DOMPrinter = new xmldom.XMLSerializer();
 var fs = require('fs');
 var Config = require('./Config');
 var Promise = require("bluebird");
+var https = require('https');
 
 function AIMLProcessor(template, inputStars, thatStars, topicStars, session, bot) {
   this.template = template;
@@ -714,7 +715,84 @@ AIMLProcessor.prototype.srai = function(node)
   return promise;
 }
 
-  AIMLProcessor.prototype.recursEval = function (node)
+function sraixPannous(input, hint)
+{
+  // undo smoe of the preprocessing. CAn we not just denormaliz?
+  input = input.replace(/ point /g, ".")
+  .replace(/ rparen /g, ")")
+  .replace(/ lparen /g, "(")
+  .replace(/ splash /g, "/")
+  .replace(/ star /g, "*")
+  .replace(/ dash /g, "-")
+  .trim()
+  // prepare for URL encoding
+  .replace(/ /g, "+");
+  function requestMaker(input, hint) {
+    return function(resolve, reject)
+    {
+      var options = {
+        host: "ask.pannous.com",
+        path: "/api?input="+input,
+        rejectUnauthorized: false,
+      };
+      console.log("Please wait while I check another source");
+      var request = https.get(options, function (response)
+      {
+        var body = "";
+        response.on("data", function (chunk)
+        {
+          body = body + chunk;
+        })
+        .on("end", function()
+        {
+          resolve(JSON.parse(body).output[0])
+        })
+      })
+    }
+  }
+  return new Promise(requestMaker(input, hint))
+  .then((result) =>
+  {
+    // console.log("Request Promise resolved.")
+    return result.actions.say.text;
+  })
+}
+
+AIMLProcessor.prototype.sraix = function( node )
+{
+    var host = this.getAttributeOrTagValue( node, "host" ),
+      botid  = this.getAttributeOrTagValue( node, "botid" ),
+      hint   = this.getAttributeOrTagValue( node, "hint" ),
+      limit  = this.getAttributeOrTagValue( node, "limit" ),
+      service= this.getAttributeOrTagValue( node, "service" ),
+      defaultResponse = this.getAttributeOrTagValue( node, "default" ),
+
+      evalResult = this.evalTagContent( node, ["host", "botid" ]);
+
+    return Promise.all([host, botid, hint, limit, service, defaultResponse, evalResult])
+    .then((params) =>
+    {
+      var host = params[0],
+          botid = params[1],
+          hint = params[2],
+          limit = params[3],
+          service = params[4],
+          defaultResponse = params[5],
+          evalResult = params[6];
+      if (!Config.ENABLE_NETWORK_CONNECTION) { throw new Error("sraix not allowed to access network") }
+      else if (host && botid)
+      {
+        response = sraixPandorabots();
+      }
+      else if (service == "pannous")
+      {
+        response = sraixPannous(evalResult, hint);
+      }
+      return response;
+    });
+}
+
+AIMLProcessor.prototype.recursEval = function (node)
 {
   if (node.nodeName == "#text") { return ValuePromise(node.nodeValue) }
   else if (node.nodeName == "#comment") { return  ValuePromise("") }
@@ -748,6 +826,7 @@ AIMLProcessor.prototype.srai = function(node)
   else if (node.nodeName == "learn") { return this.learn(node) }
   else if (node.nodeName == "first") { return this.first(node) }
   else if (node.nodeName == "rest")  { return this.rest(node) }
+  else if (node.nodeName == "sraix") { return this.sraix(node) }
   else { return ValuePromise(DOMPrinter.serializeToString(node)) }
 }
 
