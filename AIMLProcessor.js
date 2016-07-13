@@ -500,30 +500,33 @@ AIMLProcessor.prototype.learn = function(node)
     {
       // console.log("Processing learn category" + DOMPrinter.serializeToString(child));
       var grandkids = child.childNodes;
-      var pattern = "", that = "<that>*</that>", template = "";
+      var pattern = ValuePromise(""), that = ValuePromise("<that>*</that>"), template = ValuePromise("");
       for (var j = 0; j < grandkids.length; j++)
       {
         var grandchild = grandkids[j];
         if (grandchild.nodeName == "pattern")
         {
-          pattern = this.recurseLearn(grandchild);
+          pattern = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn pattern")});
         }
         else if (grandchild.nodeName == "that")
         {
-          that = this.recurseLearn(grandchild);
+          that = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn that")});
         }
         else if (grandchild.nodeName == "template")
         {
-          template = this.recurseLearn(grandchild);
+          template = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn template")});
         }
       }
-      Promise.all([pattern, that, template]).then(((node) => {(results) => {
+      // console.log("Creating promise to learn something.");
+      Promise.all([pattern, that, template]).then(((node) => {return (results) => {
         var c = {depth: 0, pattern: '*', topic: "*", that: '*', template: '', file: "learn"};
         pattern = AIMLProcessor.trimTag(results[0], "pattern").toUpperCase();
         c.pattern = pattern.replace(/[\n\s]/g, ' ');
         that = AIMLProcessor.trimTag(results[1], "that").toUpperCase();
         c.that = that.replace(/[\n\s]g/, ' ');
         c.template = AIMLProcessor.trimTag(results[2], "template");
+
+        // console.log("Learning new cateory " + c.pattern);
 
         if (node.nodeName == 'learn')
         {
@@ -532,7 +535,7 @@ AIMLProcessor.prototype.learn = function(node)
         }
 
         this.bot.addCategory(c);
-      }})(node));
+      }})(node)).catch((err)=>{console.log("Errr earnin: "+err); console.log(err.stack)});
     }
   }
   return ValuePromise("");

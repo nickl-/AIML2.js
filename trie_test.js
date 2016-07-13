@@ -40,6 +40,10 @@ response = response.then(function(result) {return askAlice("How much is that dog
 
 response = response.then(function(result) {return askAlice("well, aren't you clever?")});
 
+response = response.then(function(result) {return askAlice("My favourite eggplant is spongebob squarepants")});
+
+response = response.then(function(result) { return askAlice("What is my favourite eggplant?")});
+
 const readline = require('readline');
 
 const rl = readline.createInterface({
