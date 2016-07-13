@@ -38,6 +38,8 @@ response = response.then(function(result) {return askAlice("How old are you?")})
 
 response = response.then(function(result) {return askAlice("How much is that doggy in the window?")});
 
+response = response.then(function(result) {return askAlice("well, aren't you clever?")});
+
 const readline = require('readline');
 
 const rl = readline.createInterface({

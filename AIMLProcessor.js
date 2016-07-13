@@ -283,8 +283,10 @@ AIMLProcessor.prototype.inputStar = function(node)
   return this.getAttributeOrTagValue(node, "index").
   then((value) =>
   {
+    // console.log("<star index=\""+value+"\"/>");
     var index = parseInt(value) - 1;
     if (!index) { index = 0; }
+    // console.log("Returning " + this.inputStars[index]);
     return this.inputStars[index];
   });
 }
@@ -542,6 +544,7 @@ AIMLProcessor.prototype.loopCondition = function(node)
     // console.log("Creating new chain loop result handler");
     return (loopResult) => {
       // console.log("Returning loop iteration at count " + loopCnt);
+      if (!loopResult) { return prevResult; } // I"m not sure if this is right, but it will keep the next line from throwing an error
       if (loopCnt > Config.MAX_LOOP_COUNT) { throw new Error("Too many loops in condition!"); }
       if (loopResult.indexOf("<loop/>") > -1) {
         // console.log("Found <loop/>. Repeating.");
@@ -632,6 +635,7 @@ AIMLProcessor.prototype.condition = function(node)
                 {
                   // if we made it here, we must be at the terminal
                   // li, so we return it as the default
+                  // console.log("Returning final li");
                   return this.evalTagContent(n, ignoreAttrs);
                 }
               }
@@ -689,28 +693,45 @@ AIMLProcessor.prototype.interval = function(node) {
 
 AIMLProcessor.prototype.srai = function(node)
 {
-  this.sraiCount = this.sraiCount + 1;
-  if (this.sraiCount > Config.MAX_SRAI_DEPTH) { return "Too much recursion!" }
-  // console.log("srai redirecting with " + this.evalTagContent( node ).trim().replace(/[\r\n]/g));
+  if (this.sraiCount > Config.MAX_SRAI_DEPTH) { return ValuePromise("Too much recursion!") }
   var promise = this.evalTagContent(node).then(
     (result) => {
       result = this.bot.preProcessor.normalize(result.trim().replace(/[\r\n]/g));
+      // console.log("srai redirecting with \"" + result+ "\" at depth " + this.sraiCount);
       // need to implement topics by way of variables and predicates
       // once that's done, need to check for new topic here
-      var matchedNode = this.bot.root.match(result, "*", this.session.predicates.get('topic') || "*");
+      var matchedNode = this.bot.root.match(result, (this.session.thatHistory[0] || ["*"])[0], this.session.predicates.get('topic') || "*");
       if (matchedNode)
       {
-        // console.log("srai evaluating " + matchedNode.category.pattern + ", " + matchedNode.category.file);
-        var template = "<template>"+matchedNode.category.template+"</template>";
-        var root = DOMParser.parseFromString(template).childNodes[0];
-        response = this.recursEval(root);
-      }
-      else
-      {
-        response = ValuePromsie("ERROR IN SRAI DEPTH " + this.sraiCount);
-      }
-      this.sraiCount = this.sraiCount - 1;
-      return response;
+        if (Array.isArray(matchedNode.categor))
+        {
+          var catgories = matchedNode.category;
+        }
+        else
+        {
+          var categories = [matchedNode.category];
+        }
+        var responseHolder = ValuePromise("");
+        for (category of categories)
+        {
+          if (!category.session_id || category.session_id == this.session.id)
+          {
+            // console.log("srai evaluating " + category.pattern + ", " + category.file);
+            var ap = new AIMLProcessor(category.template, matchedNode.inputStars, matchedNode.thatStars, matchedNode.topicStars, this.session, this.bot);
+            ap.sraiCount = this.sraiCount + 1;
+            responseHolder = responseHolder.then(((ap) =>
+            {
+              return (response) => {
+                return ap.evalTemplate().then(function (nextResponse)
+                {
+                  return response + " " + nextResponse;
+                })
+              }
+            })(ap));
+          }
+        }
+        return responseHolder;
+    }
   });
   return promise;
 }

@@ -499,6 +499,7 @@ What is it like having a pet <get var="animal"/>?
 <condition name="gendername">
 <li value="M"><set name="gender">male</set></li>
 <li value="F"><set name="gender">female</set></li>
+<li><set name="gender">unknown</set></li>
 </condition>
 </think></template>
 </category>
