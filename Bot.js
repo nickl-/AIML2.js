@@ -165,7 +165,8 @@ Bot.prototype.addCategory = function (c)
 Bot.prototype.loadAIMLFiles = function () {
   this.isAIMLFileLoadingStarted = true;
 
-  var default_aiml_dir = "./bots/alice2/aiml";
+  // var default_aiml_dir = "./bots/alice2/aiml";
+  var default_aiml_dir = this.paths.aiml;
 
   fs.readdir(default_aiml_dir, (function (err,files) {
 

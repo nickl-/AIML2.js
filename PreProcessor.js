@@ -12,7 +12,7 @@ function PreProcessor(bot) {
   this.ready = false;
   this.ee = new EE();
 
-  if (bot.config_path) { var path = bot.config_path }
+  if (bot.paths && bot.paths.config) { var path = bot.paths.config }
   else { var path = './bots/alice2/config' }
 
   var normalPatterns = [];
