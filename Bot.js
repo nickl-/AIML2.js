@@ -72,6 +72,22 @@ Bot.prototype.addSets = function()
   fs.readdir(path, function (err, files) {
     if (err) { console.log("Error adding set files: "+err) }
 
+    // the AIML 2.0 specification includes a number set which is all natural numbers
+    sets.set('number', {
+      maxLength: 1,
+      indexOf: function (str) {
+        str = str.trim();
+        var i = parseInt(str);
+
+        // this just checks if a person typed in a 0, 1, 2, 3, etc.
+        // If you want anything fancier, like hex or scientific or engineering
+        // you'll have to do it as a precprocessor replacement or a pattern of its own
+        if (i.toString() == str && i > -1) { return i; }
+        else {return -1;}
+      }
+    });
+    count = count +1;
+
     for (var i = 0; i < files.length; i++)
     {
       var match = files[i].match(/^.*?([^\/\s]+)\.txt$/);// nogreedy first wildcard, default greedy second one
@@ -104,12 +120,31 @@ Bot.prototype.addMaps = function()
 {
   this.maps = new Map();
 
-  var path = this.paths.maps, maps = this.maps,
-    preproc = this.preProcessor;
+  var path = this.paths.maps;
   var count = 0;
 
-  fs.readdir(path, function (err, files) {
+  fs.readdir(path, (err, files) => {
     if (err) { console.log("Error adding map files: "+err) }
+
+    var maps = this.maps,
+      preproc = this.preProcessor,
+      count = 0;
+    // the AIML 2.0 specification has 4 predefined maps:
+    // successor -> x+1
+    // predecssor -> x-1
+    // singular -> map plural to singular nouns in english
+    // plural -> map singular to plural nounds in english
+    maps.set('successor', {
+      get: function(str) {
+        return (parseInt(str.trim()) + 1).toString();
+      },
+    })
+
+    maps.set('predecessor', {
+      get: function(str) {
+        return (parseInt(str.trim()) - 1).toString();
+      },
+    })
 
     for (var i = 0; i < files.length; i++)
     {

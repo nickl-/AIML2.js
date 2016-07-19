@@ -44,6 +44,8 @@ response = response.then(function(result) {return askAlice("My favourite eggplan
 
 response = response.then(function(result) { return askAlice("What is my favourite eggplant?")});
 
+response = response.then(function(result) { return askAlice("pick a number between 1 and 10")});
+
 const readline = require('readline');
 
 const rl = readline.createInterface({

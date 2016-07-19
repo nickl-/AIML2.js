@@ -175,6 +175,32 @@ AIMLProcessor.prototype.evalTagContent = function(node, ignoreAttributes)
   return promise;
 }
 
+AIMLProcessor.prototype.unevaluatedXML = function (node)
+{
+  return this.evalTagContent(node).then(
+    ((node)=>{
+      return (result) => {
+        var attrString = "";
+        if (node.hasAttributes())
+        {
+          for (i = 0; i < node.attributes.length; i++)
+          {
+            attrString = attrString + " " + node.attributes[i].name + "=\"" + node.attributes[i].value + "\"";
+          }
+        }
+        if (result)
+        {
+          return "<" + node.nodeName + attrString + ">" + result + "</" + node.nodeName + ">"
+        }
+        else
+        {
+          return "<" + node.nodeName + attrString + "/>"
+        }
+      }
+    })(node)
+  )
+}
+
 AIMLProcessor.prototype.set = function(node)
 {
   var predicatePromise = this.getAttributeOrTagValue(node, "name").then(
@@ -217,11 +243,11 @@ AIMLProcessor.prototype.get = function (node)
   var promise = new Promise(((predicateName, varName) => {return (fullfill) => {
     if (predicateName)
     {
-      result = this.session.predicates.get(predicateName);
+      result = this.session.predicates.get(predicateName) || "unknown";
     }
     else if (varName)
     {
-      result = this.vars.get(varName);
+      result = this.vars.get(varName) || "unknown";
     }
     fullfill(result);
   }})(predicateName, varName));
@@ -493,52 +519,65 @@ AIMLProcessor.prototype.recurseLearn = function (node)
 AIMLProcessor.prototype.learn = function(node)
 {
   var children = node.childNodes;
+  var promise = ValuePromise("");
   for (var i = 0; i < children.length; i++)
   {
     var child = children[i];
-    if (child.nodeName == "category")
-    {
-      // console.log("Processing learn category" + DOMPrinter.serializeToString(child));
-      var grandkids = child.childNodes;
-      var pattern = ValuePromise(""), that = ValuePromise("<that>*</that>"), template = ValuePromise("");
-      for (var j = 0; j < grandkids.length; j++)
-      {
-        var grandchild = grandkids[j];
-        if (grandchild.nodeName == "pattern")
+    promise = promise.then( ( (node, child) => {
+
+      return (result) => {
+        if (child.nodeName == "category")
         {
-          pattern = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn pattern")});
+          // console.log("Processing learn category" + DOMPrinter.serializeToString(child));
+          var grandkids = child.childNodes;
+          var pattern = ValuePromise(""), that = ValuePromise("<that>*</that>"), template = ValuePromise("");
+          for (var j = 0; j < grandkids.length; j++)
+          {
+            var grandchild = grandkids[j];
+            if (grandchild.nodeName == "pattern")
+            {
+              pattern = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn pattern")});
+            }
+            else if (grandchild.nodeName == "that")
+            {
+              that = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn that")});
+            }
+            else if (grandchild.nodeName == "template")
+            {
+              template = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn template")});
+            }
+          }
+          // console.log("Creating promise to learn something.");
+          return Promise.all([pattern, that, template]).then(((node) => {return (results) => {
+            var c = {depth: 0, pattern: '*', topic: "*", that: '*', template: '', file: "learn"};
+            pattern = AIMLProcessor.trimTag(results[0], "pattern").toUpperCase();
+            c.pattern = pattern.replace(/[\n\s]/g, ' ');
+            that = AIMLProcessor.trimTag(results[1], "that").toUpperCase();
+            c.that = that.replace(/[\n\s]g/, ' ');
+            c.template = AIMLProcessor.trimTag(results[2], "template");
+
+            // console.log("Learning new cateory: <pattern>" + c.pattern + "</pattern>");
+            // console.log("     <that>" + c.that + "</that>");
+            // console.log("     <template>" + DOMPrinter.serializeToString(c.template) + "</template>");
+            //
+            if (node.nodeName == 'learn')
+            {
+              // console.log("Learning new category for session " + this.session.id);
+              c.session_id = this.session.id;
+            }
+
+            this.bot.addCategory(c);
+            return "";
+          }})(node)).catch((err)=>{console.log("Errr earnin: "+err); console.log(err.stack)});
         }
-        else if (grandchild.nodeName == "that")
+        else
         {
-          that = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn that")});
-        }
-        else if (grandchild.nodeName == "template")
-        {
-          template = this.recurseLearn(grandchild).catch((err)=>{console.log("Error with recruseLearn template")});
+            return result.trim();
         }
       }
-      // console.log("Creating promise to learn something.");
-      Promise.all([pattern, that, template]).then(((node) => {return (results) => {
-        var c = {depth: 0, pattern: '*', topic: "*", that: '*', template: '', file: "learn"};
-        pattern = AIMLProcessor.trimTag(results[0], "pattern").toUpperCase();
-        c.pattern = pattern.replace(/[\n\s]/g, ' ');
-        that = AIMLProcessor.trimTag(results[1], "that").toUpperCase();
-        c.that = that.replace(/[\n\s]g/, ' ');
-        c.template = AIMLProcessor.trimTag(results[2], "template");
-
-        // console.log("Learning new cateory " + c.pattern);
-
-        if (node.nodeName == 'learn')
-        {
-          // console.log("Learning new category for session " + this.session.id);
-          c.session_id = this.session.id;
-        }
-
-        this.bot.addCategory(c);
-      }})(node)).catch((err)=>{console.log("Errr earnin: "+err); console.log(err.stack)});
-    }
+    })(node, child) );
   }
-  return ValuePromise("");
+  return promise;
 }
 
 AIMLProcessor.prototype.loopCondition = function(node)
@@ -855,7 +894,7 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "first") { return this.first(node) }
   else if (node.nodeName == "rest")  { return this.rest(node) }
   else if (node.nodeName == "sraix") { return this.sraix(node) }
-  else { return ValuePromise(DOMPrinter.serializeToString(node)) }
+  else { return this.unevaluatedXML(node) }
 }
 
 AIMLProcessor.prototype.evalTemplate = function () {
