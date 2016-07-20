@@ -243,11 +243,15 @@ AIMLProcessor.prototype.get = function (node)
   var promise = new Promise(((predicateName, varName) => {return (fullfill) => {
     if (predicateName)
     {
-      result = this.session.predicates.get(predicateName) || "unknown";
+      result = this.session.predicates.get(predicateName);
     }
     else if (varName)
     {
-      result = this.vars.get(varName) || "unknown";
+      result = this.vars.get(varName);
+    }
+    if (!result)
+    {
+      result = this.bot.properties.get("default-get") || "unknown";
     }
     fullfill(result);
   }})(predicateName, varName));
@@ -274,10 +278,14 @@ AIMLProcessor.prototype.map = function(node)
           map = this.bot.maps.get(mapName);
           if (map)
           {
-            result = map.get(contents.toUpperCase()).trim();
+            result = map.get(contents.toUpperCase());
           }
         }
-        return result;
+        if (!result)
+        {
+          result = this.bot.properties.get("default-map");
+        }
+        return result.trim();
       }
     })(mapName));
     return promise;
@@ -413,7 +421,12 @@ AIMLProcessor.prototype.botNode = function (node)
 {
   var promise = this.getAttributeOrTagValue(node, "name")
   .then((prop) => {
-  return ValuePromise(this.bot.properties.get(prop).trim());
+  return ValuePromise(
+    (
+      this.bot.properties.get(prop) ||
+      this.bot.properties.get("default-property") ||
+      "unknown"
+    ) .trim());
   });
   return promise;
 }
@@ -622,9 +635,13 @@ AIMLProcessor.prototype.condition = function(node)
     }
     if ( (lilist.length) == 0 && value &&
           ((varName &&
-            (this.vars.get(varName).toLowerCase() == value.toLowerCase())) ||
+            ((this.vars.get(varName) ||
+            this.bot.properties.get("default-get") ||
+            "unknown").toLowerCase() == value.toLowerCase())) ||
           (predicate &&
-          (this.session.predicates.get(predicate).toLowerCase() == value.toLowerCase()))) )
+          ((this.session.predicates.get(predicate) ||
+          this.bot.properties.get("default-get") ||
+          "unknown").toLowerCase() == value.toLowerCase()))) )
     {
       return this.evalTagContent(node, ignoreAttrs);
     }
@@ -656,7 +673,9 @@ AIMLProcessor.prototype.condition = function(node)
                 if (value)
                 {
                   if ((predicate || liPred) && value && (
-                    ((this.session.predicates.get(predicate || liPred) || "unknown").toLowerCase() == value.toLowerCase())
+                    ((this.session.predicates.get(predicate || liPred) ||
+                    this.bot.properties.get("default-get") ||
+                    "unknown").toLowerCase() == value.toLowerCase())
                     || (this.session.predicates.has(predicate || liPred) && (value == "*") )
                   ))
                   {
@@ -664,7 +683,9 @@ AIMLProcessor.prototype.condition = function(node)
                     return this.evalTagContent(n, ignoreAttrs);
                   }
                   else if ((varName || liVar) && value && (
-                    ((this.vars.get(varName || liVar) || "unknown").toLowerCase() == value.toLowerCase())
+                    ((this.vars.get(varName || liVar) ||
+                    this.bot.properties.get("default-get") ||
+                    "unknown").toLowerCase() == value.toLowerCase())
                     || (this.vars.has(varName || liVar) && (value == "*")
                   )))
                   {
