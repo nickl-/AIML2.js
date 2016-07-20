@@ -199,14 +199,14 @@
 <template><srai>DATE IN <srai>DAYS UNTIL SATURDAY</srai> DAYS</srai></template>
 </category>
 <category><pattern>DATE A WEEK FROM <set>weekday</set></pattern>
-<template><srai>DATE IN 
-<srai>SUCCESSOR 
-<srai>SUCCESSOR 
-<srai>SUCCESSOR 
-<srai>SUCCESSOR 
-<srai>SUCCESSOR 
-<srai>SUCCESSOR 
-<srai>SUCCESSOR 
+<template><srai>DATE IN
+<srai>SUCCESSOR
+<srai>SUCCESSOR
+<srai>SUCCESSOR
+<srai>SUCCESSOR
+<srai>SUCCESSOR
+<srai>SUCCESSOR
+<srai>SUCCESSOR
 <srai>DAYS UNTIL <star/></srai>
 </srai>
 </srai>

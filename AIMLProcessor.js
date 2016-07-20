@@ -896,6 +896,9 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "person") { return this.person(node) }
   else if (node.nodeName == "person2") { return this.person2(node) }
   else if (node.nodeName == "bot") { return this.botNode( node ) }
+  else if (node.nodeName == "vocabulary") { return ValuePromise(this.bot.vocabulary.size) }
+  else if (node.nodeName == "size") { return ValuePromise(this.bot.size) }
+  else if (node.nodeName == "program") { return ValuePromise(Config.name + ' ' + Config.version) }
   else if (node.nodeName == "interval") { return this.interval(node) }
   else if (node.nodeName == "date") { return this.date(node) }
   else if (node.nodeName == "srai") { return this.srai(node) }

@@ -20,6 +20,8 @@ function Bot(name, path) {
   this.addMaps();
   this.root = new TrieNode(this);
   this.ee = new EventEmitter();
+  this.size = 0;
+  this.vocabulary = new Set();
   // console.log("this.root = "+this.root);
 }
 
@@ -69,7 +71,7 @@ Bot.prototype.addSets = function()
     preproc = this.preProcessor;
   var count = 0;
 
-  fs.readdir(path, function (err, files) {
+  fs.readdir(path, (err, files) => {
     if (err) { console.log("Error adding set files: "+err) }
 
     // the AIML 2.0 specification includes a number set which is all natural numbers
@@ -100,6 +102,7 @@ Bot.prototype.addSets = function()
         {
           setlist[j] = preproc.normalize(setlist[j]).trim().toUpperCase();
           maxlength = Math.max(maxlength, setlist[j].split(/ /).length)
+          setlist[j].split(/\s+/).forEach((word)=>{this.vocabulary.add(word.toLowerCase())});
         }
         // if (Math.random() < 0.05)
           // console.log("Adding set: "+match[1]+" = " + setlist);
@@ -196,6 +199,8 @@ Bot.prototype.addCategory = function (c)
 {
   var p = Path.sentenceToPath(this.replaceBotProperties(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic));
   this.root.addPath(p, c);
+  this.size = this.size+1;
+  c.pattern.replace(/\*\#\_\^\$/g, '').split(/\s+/).forEach((word)=>{this.vocabulary.add(word.toLowerCase())});
 }
 
 Bot.prototype.loadAIMLFiles = function () {
