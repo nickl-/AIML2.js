@@ -75,15 +75,15 @@ Bot.prototype.addSets = function()
     // the AIML 2.0 specification includes a number set which is all natural numbers
     sets.set('number', {
       maxLength: 1,
-      indexOf: function (str) {
+      has: function (str) {
         str = str.trim();
         var i = parseInt(str);
 
         // this just checks if a person typed in a 0, 1, 2, 3, etc.
         // If you want anything fancier, like hex or scientific or engineering
         // you'll have to do it as a precprocessor replacement or a pattern of its own
-        if (i.toString() == str && i > -1) { return i; }
-        else {return -1;}
+        if (i.toString() == str && i > -1) { return true; }
+        else {return false;}
       }
     });
     count = count +1;
@@ -103,6 +103,7 @@ Bot.prototype.addSets = function()
         }
         // if (Math.random() < 0.05)
           // console.log("Adding set: "+match[1]+" = " + setlist);
+        setlist = new Set(setlist);
         setlist.maxLength = maxlength;
         sets.set(match[1], setlist);
         count = count + 1;

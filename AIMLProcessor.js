@@ -220,7 +220,7 @@ AIMLProcessor.prototype.set = function(node)
               {
                 this.vars.set(varName, result);
               }
-              if (this.bot.sets.get("pronoun").indexOf(predicateName) > - 1)
+              if (this.bot.sets.get("pronoun").has(predicateName))
               {
                 result = predicateName; // what?
               }

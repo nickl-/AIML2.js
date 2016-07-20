@@ -356,7 +356,7 @@ TrieNode.prototype.setMatch = function (path, input, starState, starIndex, input
     for (var qath = path.next; qath && currentWord != "<THAT>" && currentWord != "<TOPIC>" && length <= aimlSet.maxLength; qath = qath.next) {
       var phrase = this.bot.preProcessor.normalize(starWords).trim().toUpperCase();
       // console.log("Searching for phrase \"" + phrase + "\"");
-      if (aimlSet.indexOf(phrase) > -1)
+      if (aimlSet.has(phrase))
       {
         matchTrace = matchTrace + "[<set>"+setName+"</set>,"+phrase+"]";
         // console.log("Found it")
