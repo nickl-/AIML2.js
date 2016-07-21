@@ -849,10 +849,10 @@ function sraixPannous(input, hint)
 AIMLProcessor.prototype.systemTag = function ( node )
 {
   var attrPromise = this.getAttributeOrTagValue(node, "timeout");
-  var promise = this.evalTagContent(node);
+  var promise = this.evalTagContent(node, "timeout");
   return Promise.all([promise, attrPromise]).then((results) => {
     var result = results[0],
-      timeout = results[1];
+      timeout = parseInt(results[1]);
     if (!timeout ||
       !Number.isInteger(timeout) ||
       timeout < 1 ||
@@ -866,14 +866,14 @@ AIMLProcessor.prototype.systemTag = function ( node )
         {
           if (error)
           {
-            reject('Error in <system>'+error+'\r\n'+stderr.toString())
+            reject('Error in <system>'+error)
           }
           else
           {
             resolve(stdout.toString())
           }
         })
-    })
+    }).catch((err) => {return "Sorry. I couldn't answer your question: " + err})
   })
 }
 
@@ -887,7 +887,7 @@ AIMLProcessor.prototype.jsTag = function ( node )
   var promise = this.evalTagContent(node, "timeout");
   return Promise.all([promise, attrPromise]).then((results) => {
     var script = results[0],
-      timeout = results[1];
+      timeout = parseInt(results[1]);
     if (!timeout ||
       !Number.isInteger(timeout) ||
       timeout < 1 ||
@@ -900,7 +900,18 @@ AIMLProcessor.prototype.jsTag = function ( node )
       script = vm.createScript(script);
     script.runInContext(sandbox, {timeout: timeout});
     return sandbox.result;
-  })
+  }).catch((err) =>
+    {
+      if (err.message == "Script execution timed out.")
+      {
+        return "Sorry, your answer contained a script that was taking too long."
+      }
+      else
+      {
+        throw err;
+      }
+    }
+  )
 }
 
 AIMLProcessor.prototype.sraix = function( node )
