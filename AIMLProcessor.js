@@ -846,6 +846,63 @@ function sraixPannous(input, hint)
   })
 }
 
+AIMLProcessor.prototype.systemTag = function ( node )
+{
+  var attrPromise = this.getAttributeOrTagValue(node, "timeout");
+  var promise = this.evalTagContent(node);
+  return Promise.all([promise, attrPromise]).then((results) => {
+    var result = results[0],
+      timeout = results[1];
+    if (!timeout ||
+      !Number.isInteger(timeout) ||
+      timeout < 1 ||
+      timeout > Config.MAX_SYSTEM_TIMEOUT)
+    {
+      timeout = Config.MAX_SYSTEM_TIMEOUT;
+    }
+    return new Promise((resolve, reject) => {
+      const child_process = require('child_process');
+      child_process.exec(result, {timeout:timeout}, (error, stdout, stderr) =>
+        {
+          if (error)
+          {
+            reject('Error in <system>'+error+'\r\n'+stderr.toString())
+          }
+          else
+          {
+            resolve(stdout.toString())
+          }
+        })
+    })
+  })
+}
+
+// Since the AIML 2.0 spec doesn't even include this tag and the AIML 1.0.1
+// does include it but doesn't require any particular behaviour, we're going
+// to require the behaviour that a variable called "result" gets set and that's
+// what get's put in the template
+AIMLProcessor.prototype.jsTag = function ( node )
+{
+  var attrPromise = this.getAttributeOrTagValue(node, "timeout");
+  var promise = this.evalTagContent(node, "timeout");
+  return Promise.all([promise, attrPromise]).then((results) => {
+    var script = results[0],
+      timeout = results[1];
+    if (!timeout ||
+      !Number.isInteger(timeout) ||
+      timeout < 1 ||
+      timeout > Config.MAX_JS_TIMEOUT)
+    {
+      timeout = Config.MAX_JS_TIMEOUT;
+    }
+    const vm = require('vm');
+    var sandbox = vm.createContext({result: ""}),
+      script = vm.createScript(script);
+    script.runInContext(sandbox, {timeout: timeout});
+    return sandbox.result;
+  })
+}
+
 AIMLProcessor.prototype.sraix = function( node )
 {
     var host = this.getAttributeOrTagValue( node, "host" ),
@@ -918,6 +975,8 @@ AIMLProcessor.prototype.recursEval = function (node)
   else if (node.nodeName == "first") { return this.first(node) }
   else if (node.nodeName == "rest")  { return this.rest(node) }
   else if (node.nodeName == "sraix") { return this.sraix(node) }
+  else if (node.nodeName == "javascript" ) { return this.jsTag(node) }
+  else if (node.nodeName == "system" ) { return this.systemTag(node) }
   else { return this.unevaluatedXML(node) }
 }
 

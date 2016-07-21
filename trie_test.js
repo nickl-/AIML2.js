@@ -56,3 +56,7 @@ const rl = readline.createInterface({
 rl.on('line', (line) => {
   bot.respond(line, session).then(function(result) {console.log(result)});
 });
+
+rl.on('close', () => {
+  console.log("Goodbye!");
+})
