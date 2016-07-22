@@ -596,14 +596,16 @@ AIMLProcessor.prototype.learn = function(node)
 AIMLProcessor.prototype.loopCondition = function(node)
 {
   var chainLoopResult = (node, loopCnt, prevResult) => {
-    // console.log("Creating new chain loop result handler");
+    // console.log("Creating new chain loop result handler. PrevResult: \""+prevResult+"\"");
     return (loopResult) => {
+      // console.log("Got loop result: \"" + loopResult+"\"");
+      // console.log("Prev result: \"" + prevResult+"\"");
       // console.log("Returning loop iteration at count " + loopCnt);
-      if (!loopResult) { return prevResult; } // I"m not sure if this is right, but it will keep the next line from throwing an error
+      if (loopResult == null) { return prevResult; } // I"m not sure if this is right, but it will keep the next line from throwing an error
       if (loopCnt > Config.MAX_LOOP_COUNT) { throw new Error("Too many loops in condition!"); }
       if (loopResult.indexOf("<loop/>") > -1) {
         // console.log("Found <loop/>. Repeating.");
-        return this.condition(node).then(chainLoopResult(node, loopCnt + 1, prevResult + loopResult.replace("<loop/>", "")));
+        return this.condition(node).then(chainLoopResult(node, loopCnt + 1, prevResult + loopResult.replace("<loop/>", "").trim()));
       } else {
         // console.log("No <loop/> found. Returning");
         return prevResult + loopResult;
@@ -614,6 +616,18 @@ AIMLProcessor.prototype.loopCondition = function(node)
   return this.condition(node).then(chainLoopResult(node, 0, ""));
 }
 
+/*
+ * The condition tag has a 2 forms:
+ * a) where the condition has a value, in which case it either returns
+ *    an empty string if the value doesn't match and the contents of the
+ *    tag if it does
+ * b) where the condition doesn't have a value, in which has it has <li>
+ *    child tags. The interpreter should check the value in each li
+ *    for a match. If it matchs, no further <li>s are checked and the
+ *    contents of the matchin <li> are returned. There's also the options
+ *    of a final <li> tag with no value which is only evaluated if no other
+ *    <li> tags match
+ */
 AIMLProcessor.prototype.condition = function(node)
 {
 
@@ -643,19 +657,25 @@ AIMLProcessor.prototype.condition = function(node)
           this.bot.properties.get("default-get") ||
           "unknown").toLowerCase() == value.toLowerCase()))) )
     {
+      // this is case a) where the condition has a value and it matches
       return this.evalTagContent(node, ignoreAttrs);
     }
     else
     {
-      var promise = ValuePromise("");
+      // we start with a promise that returns null so it doesn't look like
+      // a previous <li> in the list returned a result
+      var promise = ValuePromise(null);
       for (var i = 0; i < lilist.length; i++)
       {
         var n = lilist[i];
         promise = promise.then(((n) => {
           return (result) => {
             // if a previous iteratin of the for loop returned a result
+            // then this won't be null (this is important in case a previous
+            // <li> returned an empty string; in that case we should still not
+            // evaluate any subsequent tags.)
             // just pass it alon and don't do anything else
-            if (result) {
+            if (result != null) {
               return result;
             }
             // because of the promise chain, we need to check for these at the lI value
@@ -705,8 +725,8 @@ AIMLProcessor.prototype.condition = function(node)
             })(predicate, varName, value, n));
             return liPromise;
           }})(n));
-        }
-        return promise;
+        } // if nobody returned anything, then we should return an empty string
+        return promise.then((result) => { if (result == null) return ""; else return result });
       }
     }
   })(node));
