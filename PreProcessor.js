@@ -1,4 +1,4 @@
-var EE = require('EventEmitter').EventEmitter;
+var EE = require('eventemitter').EventEmitter;
 var readline = require('readline');
 
 // this will need to be replaced with a require when the MagicStrings file is created

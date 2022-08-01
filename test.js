@@ -1,4 +1,4 @@
-AIMLInterpreter = require('./aiml2interpreter');
+AIMLInterpreter = require('./AIML2Interpreter');
 
 var aimlInterpreter = new AIMLInterpreter({name:'WireInterpreter', age:'42'});
 aimlInterpreter.loadAIMLFilesIntoArray(['./test.aiml.xml']);
