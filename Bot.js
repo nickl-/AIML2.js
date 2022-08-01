@@ -101,8 +101,9 @@ Bot.prototype.addSets = function()
         for (var j = 0; j < setlist.length; j++)
         {
           setlist[j] = preproc.normalize(setlist[j]).trim().toUpperCase();
-          maxlength = Math.max(maxlength, setlist[j].split(/ /).length)
-          setlist[j].split(/\s+/).forEach((word)=>{this.vocabulary.add(word.toLowerCase())});
+          let words = setlist[j].split(/\s+/);
+          maxlength = Math.max(maxlength, words.length)
+          words.forEach((word)=>{this.vocabulary.add(word.toLowerCase())});
         }
         // if (Math.random() < 0.05)
           // console.log("Adding set: "+match[1]+" = " + setlist);
@@ -200,7 +201,7 @@ Bot.prototype.addCategory = function (c)
   var p = Path.sentenceToPath(this.replaceBotProperties(c.pattern + " <THAT> " + c.that + " <TOPIC> " + c.topic));
   this.root.addPath(p, c);
   this.size = this.size+1;
-  c.pattern.replace(/\*\#\_\^\$/g, '').split(/\s+/).forEach((word)=>{this.vocabulary.add(word.toLowerCase())});
+  c.pattern.replace(/[\*\#\_\^\$]/g, '').split(/\s+/).forEach((word)=>{this.vocabulary.add(word.toLowerCase())});
 }
 
 Bot.prototype.loadAIMLFiles = function () {
